@@ -167,24 +167,33 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateLabel) {
             dateLabel.addEventListener('click', function(e) {
                 e.preventDefault();
-                // Scroll nach unten, damit Kalender besser sichtbar ist
-                setTimeout(() => {
-                    if (filterDateInput.showPicker) {
-                        filterDateInput.showPicker();
-                    } else {
-                        filterDateInput.click();
-                    }
-                }, 100);
+                e.stopPropagation();
+                // Direkt den Kalender öffnen
+                if (filterDateInput.showPicker) {
+                    filterDateInput.showPicker();
+                } else {
+                    // Fallback: Input direkt klicken
+                    filterDateInput.focus();
+                    filterDateInput.click();
+                }
             });
         }
+        
+        // Auch direkt auf den Input klicken können
+        filterDateInput.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (this.showPicker) {
+                this.showPicker();
+            }
+        });
         
         filterDateInput.addEventListener('change', function() {
             if (this.value) {
                 activeFilters.date = this.value;
                 this.classList.add('active');
-                // Update Label Text
+                // Update Label Text - mit Jahr
                 const date = new Date(this.value + 'T00:00:00');
-                const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+                const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 const label = document.querySelector('.filter-date-text');
                 if (label) label.textContent = dateStr;
             } else {
@@ -205,6 +214,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (label) label.textContent = 'Datum';
             applyFilters();
         });
+        
+        // Auch auf Label doppelklick zum Zurücksetzen
+        if (dateLabel) {
+            dateLabel.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                filterDateInput.value = '';
+                activeFilters.date = null;
+                filterDateInput.classList.remove('active');
+                const label = document.querySelector('.filter-date-text');
+                if (label) label.textContent = 'Datum';
+                applyFilters();
+            });
+        }
     }
     
     // Zeit-Filter (Time Range: Von-Bis) - Two Inputs
@@ -244,7 +267,24 @@ document.addEventListener('DOMContentLoaded', function() {
         filterTimeFrom.addEventListener('change', updateTimeFilter);
         filterTimeTo.addEventListener('change', updateTimeFilter);
         
-        // Doppelklick zum Zurücksetzen
+        // Klick auf bereits aktiven Input entfernt den Wert
+        filterTimeFrom.addEventListener('click', function(e) {
+            if (this.value && this.classList.contains('active')) {
+                // Wenn bereits ein Wert gesetzt ist, entferne ihn beim Klick
+                this.value = '';
+                updateTimeFilter();
+            }
+        });
+        
+        filterTimeTo.addEventListener('click', function(e) {
+            if (this.value && this.classList.contains('active')) {
+                // Wenn bereits ein Wert gesetzt ist, entferne ihn beim Klick
+                this.value = '';
+                updateTimeFilter();
+            }
+        });
+        
+        // Doppelklick zum Zurücksetzen beider
         filterTimeFrom.addEventListener('dblclick', function() {
             filterTimeFrom.value = '';
             filterTimeTo.value = '';
@@ -282,6 +322,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             activeFilters.location.lng = userLocation.lng;
                             activeFilters.location.radius = radius;
                             filterLocationBtn.classList.add('active');
+                            const locationText = filterLocationBtn.querySelector('.filter-location-text');
+                            if (locationText) locationText.textContent = 'On';
                             applyFilters();
                         },
                         function(error) {
@@ -297,6 +339,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 activeFilters.location.lat = null;
                 activeFilters.location.lng = null;
                 filterLocationBtn.classList.remove('active');
+                const locationText = filterLocationBtn.querySelector('.filter-location-text');
+                if (locationText) locationText.textContent = 'Off';
                 applyFilters();
             }
         });
@@ -308,6 +352,72 @@ document.addEventListener('DOMContentLoaded', function() {
             if (activeFilters.location.enabled) {
                 applyFilters();
             }
+        });
+    }
+    
+    // Reset-Button: Setzt alle Filter zurück
+    const filterResetBtn = document.getElementById('filterResetBtn');
+    if (filterResetBtn) {
+        filterResetBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            // Setze alle Filter zurück
+            activeFilters.category = null;
+            activeFilters.date = null;
+            activeFilters.timeFrom = null;
+            activeFilters.timeTo = null;
+            activeFilters.image = null;
+            activeFilters.persons = null;
+            activeFilters.location.enabled = false;
+            activeFilters.location.lat = null;
+            activeFilters.location.lng = null;
+            
+            // Reset UI Elements
+            // Category
+            document.querySelectorAll('.filter-dropdown-option.active').forEach(option => {
+                option.classList.remove('active');
+            });
+            document.querySelectorAll('.filter-dropdown-btn.active').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Date
+            const filterDateInput = document.getElementById('filterDate');
+            if (filterDateInput) {
+                filterDateInput.value = '';
+                filterDateInput.classList.remove('active');
+                const dateLabel = document.querySelector('.filter-date-text');
+                if (dateLabel) dateLabel.textContent = 'Datum';
+            }
+            
+            // Time
+            const filterTimeFrom = document.getElementById('filterTimeFrom');
+            const filterTimeTo = document.getElementById('filterTimeTo');
+            if (filterTimeFrom) {
+                filterTimeFrom.value = '';
+                filterTimeFrom.classList.remove('active');
+            }
+            if (filterTimeTo) {
+                filterTimeTo.value = '';
+                filterTimeTo.classList.remove('active');
+            }
+            
+            // Persons
+            const filterPersons = document.getElementById('filterPersons');
+            if (filterPersons) {
+                filterPersons.value = '';
+                filterPersons.classList.remove('active');
+            }
+            
+            // Location
+            if (filterLocationBtn) {
+                filterLocationBtn.classList.remove('active');
+                const locationText = filterLocationBtn.querySelector('.filter-location-text');
+                if (locationText) locationText.textContent = 'Off';
+            }
+            
+            // Apply filters (which will clear everything)
+            applyFilters();
         });
     }
     

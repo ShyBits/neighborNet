@@ -17,15 +17,15 @@ $canView = $isLoggedIn || $isGuest;
             <div class="angebote-list-header">
                 <h3 class="angebote-list-title">Verfügbare Anfragen</h3>
             </div>
-            <?php if ($isLoggedIn): ?>
+                <?php if ($isLoggedIn): ?>
                 <div class="angebote-filters-actions">
                     <div class="main-filter-dropdown">
                         <button class="main-filter-btn" id="mainFilterBtn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                            </svg>
-                            Filter
-                        </button>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                                Filter
+                            </button>
                         <div class="main-filter-menu" id="mainFilterMenu">
                             <div class="main-filter-content">
                                 <div class="filter-section">
@@ -66,7 +66,7 @@ $canView = $isLoggedIn || $isGuest;
                                                 <line x1="3" y1="10" x2="21" y2="10"></line>
                                             </svg>
                                             <span class="filter-date-text">Datum</span>
-                                        </label>
+                                    </label>
                                     </div>
                                 </div>
                                 <div class="filter-section">
@@ -123,26 +123,27 @@ $canView = $isLoggedIn || $isGuest;
                                             <span class="filter-radius-unit">km</span>
                                         </div>
                                         <button class="filter-location-btn" id="filterLocationBtn" data-filter-type="location">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                                <circle cx="12" cy="10" r="3"></circle>
-                                            </svg>
-                                            <span class="filter-location-text">Standort</span>
+                                            <span class="filter-location-text">Off</span>
                                         </button>
                                     </div>
                                 </div>
                             </div>
+                            <div class="filter-reset-section">
+                                <button class="filter-reset-btn" id="filterResetBtn">
+                                    Reset
+                                </button>
+                                </div>
+                            </div>
                         </div>
+                        <button class="angebote-add-btn" id="addBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Hinzufügen
+                        </button>
                     </div>
-                    <button class="angebote-add-btn" id="addBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Hinzufügen
-                    </button>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
             
             <div class="angebote-items" id="angeboteItems">
                 <p class="no-angebote">Aktuell sind keine Anfragen verfügbar.</p>
