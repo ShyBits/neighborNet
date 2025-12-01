@@ -38,45 +38,62 @@ document.addEventListener('DOMContentLoaded', function() {
     const angeboteItems = document.getElementById('angeboteItems');
     const isLoggedIn = angeboteItems !== null;
     
-    const filterBtn = document.getElementById('filterBtn');
     const addBtn = document.getElementById('addBtn');
-    const filterMenu = document.getElementById('filterMenu');
-    const filterCategoryInputs = document.querySelectorAll('.filter-category');
+    const filterButtons = document.querySelectorAll('.filter-btn');
     
     let activeFilters = {
-        categories: []
+        categories: [],
+        date: null,
+        image: null
     };
     
-    if (filterBtn && filterMenu) {
-        filterBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            filterMenu.classList.toggle('active');
-        });
-    }
-    
-    document.addEventListener('click', function(e) {
-        if (filterMenu && !e.target.closest('.angebote-filter-dropdown')) {
-            filterMenu.classList.remove('active');
-        }
-    });
-    
-    // Automatischer Filter bei Checkbox-Änderung
-    filterCategoryInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            updateFilters();
+    // Filter-Button Klick-Handler
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const filterType = this.dataset.filterType;
+            const filterValue = this.dataset.filterValue;
+            
+            // Toggle button active state
+            this.classList.toggle('active');
+            
+            if (filterType === 'category') {
+                // Kategorien können mehrere sein
+                if (this.classList.contains('active')) {
+                    if (!activeFilters.categories.includes(filterValue)) {
+                        activeFilters.categories.push(filterValue);
+                    }
+                } else {
+                    activeFilters.categories = activeFilters.categories.filter(cat => cat !== filterValue);
+                }
+            } else if (filterType === 'date') {
+                // Datum ist exklusiv - nur einer kann aktiv sein
+                filterButtons.forEach(b => {
+                    if (b.dataset.filterType === 'date' && b !== this) {
+                        b.classList.remove('active');
+                    }
+                });
+                if (this.classList.contains('active')) {
+                    activeFilters.date = filterValue;
+                } else {
+                    activeFilters.date = null;
+                }
+            } else if (filterType === 'image') {
+                // Bild-Filter ist exklusiv
+                filterButtons.forEach(b => {
+                    if (b.dataset.filterType === 'image' && b !== this) {
+                        b.classList.remove('active');
+                    }
+                });
+                if (this.classList.contains('active')) {
+                    activeFilters.image = filterValue;
+                } else {
+                    activeFilters.image = null;
+                }
+            }
+            
             applyFilters();
         });
     });
-    
-    function updateFilters() {
-        const selectedCategories = [];
-        filterCategoryInputs.forEach(input => {
-            if (input.checked) {
-                selectedCategories.push(input.value);
-            }
-        });
-        activeFilters.categories = selectedCategories;
-    }
     
     function loadAngebote() {
         const angeboteItems = document.getElementById('angeboteItems');
@@ -110,6 +127,44 @@ document.addEventListener('DOMContentLoaded', function() {
         if (activeFilters.categories.length > 0) {
             filtered = filtered.filter(angebot => {
                 return activeFilters.categories.includes(angebot.category);
+            });
+        }
+        
+        // Filter nach Datum
+        if (activeFilters.date) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            filtered = filtered.filter(angebot => {
+                if (!angebot.start_date) return false;
+                const startDate = new Date(angebot.start_date + 'T00:00:00');
+                startDate.setHours(0, 0, 0, 0);
+                
+                if (activeFilters.date === 'today') {
+                    return startDate.getTime() === today.getTime();
+                } else if (activeFilters.date === 'week') {
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    return startDate >= weekAgo && startDate <= today;
+                } else if (activeFilters.date === 'month') {
+                    const monthAgo = new Date(today);
+                    monthAgo.setMonth(today.getMonth() - 1);
+                    return startDate >= monthAgo && startDate <= today;
+                }
+                return true;
+            });
+        }
+        
+        // Filter nach Bild
+        if (activeFilters.image) {
+            filtered = filtered.filter(angebot => {
+                const hasImage = angebot.images && angebot.images.length > 0;
+                if (activeFilters.image === 'with-image') {
+                    return hasImage;
+                } else if (activeFilters.image === 'without-image') {
+                    return !hasImage;
+                }
+                return true;
             });
         }
         

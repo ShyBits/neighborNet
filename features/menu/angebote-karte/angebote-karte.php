@@ -18,29 +18,6 @@ $canView = $isLoggedIn || $isGuest;
                 <h3 class="angebote-list-title">Verfügbare Anfragen</h3>
                 <?php if ($isLoggedIn): ?>
                     <div class="angebote-list-actions">
-                        <div class="angebote-filter-section">
-                            <div class="filter-buttons-group">
-                                <span class="filter-group-label">Kategorien:</span>
-                                <button class="filter-btn" data-filter-type="category" data-filter-value="gartenarbeit">Gartenarbeit</button>
-                                <button class="filter-btn" data-filter-type="category" data-filter-value="haushalt">Haushalt</button>
-                                <button class="filter-btn" data-filter-type="category" data-filter-value="umzug">Umzug</button>
-                                <button class="filter-btn" data-filter-type="category" data-filter-value="reparatur">Reparatur</button>
-                                <button class="filter-btn" data-filter-type="category" data-filter-value="betreuung">Betreuung</button>
-                                <button class="filter-btn" data-filter-type="category" data-filter-value="einkauf">Einkauf</button>
-                                <button class="filter-btn" data-filter-type="category" data-filter-value="sonstiges">Sonstiges</button>
-                            </div>
-                            <div class="filter-buttons-group">
-                                <span class="filter-group-label">Zeitraum:</span>
-                                <button class="filter-btn" data-filter-type="date" data-filter-value="today">Heute</button>
-                                <button class="filter-btn" data-filter-type="date" data-filter-value="week">Diese Woche</button>
-                                <button class="filter-btn" data-filter-type="date" data-filter-value="month">Dieser Monat</button>
-                            </div>
-                            <div class="filter-buttons-group">
-                                <span class="filter-group-label">Weitere:</span>
-                                <button class="filter-btn" data-filter-type="image" data-filter-value="with-image">Mit Bild</button>
-                                <button class="filter-btn" data-filter-type="image" data-filter-value="without-image">Ohne Bild</button>
-                            </div>
-                        </div>
                         <button class="angebote-add-btn" id="addBtn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -51,6 +28,31 @@ $canView = $isLoggedIn || $isGuest;
                     </div>
                 <?php endif; ?>
             </div>
+            <?php if ($isLoggedIn): ?>
+                <div class="angebote-filter-section">
+                    <div class="filter-buttons-group">
+                        <span class="filter-group-label">Kategorien:</span>
+                        <button class="filter-btn" data-filter-type="category" data-filter-value="gartenarbeit">Gartenarbeit</button>
+                        <button class="filter-btn" data-filter-type="category" data-filter-value="haushalt">Haushalt</button>
+                        <button class="filter-btn" data-filter-type="category" data-filter-value="umzug">Umzug</button>
+                        <button class="filter-btn" data-filter-type="category" data-filter-value="reparatur">Reparatur</button>
+                        <button class="filter-btn" data-filter-type="category" data-filter-value="betreuung">Betreuung</button>
+                        <button class="filter-btn" data-filter-type="category" data-filter-value="einkauf">Einkauf</button>
+                        <button class="filter-btn" data-filter-type="category" data-filter-value="sonstiges">Sonstiges</button>
+                    </div>
+                    <div class="filter-buttons-group">
+                        <span class="filter-group-label">Zeitraum:</span>
+                        <button class="filter-btn" data-filter-type="date" data-filter-value="today">Heute</button>
+                        <button class="filter-btn" data-filter-type="date" data-filter-value="week">Diese Woche</button>
+                        <button class="filter-btn" data-filter-type="date" data-filter-value="month">Dieser Monat</button>
+                    </div>
+                    <div class="filter-buttons-group">
+                        <span class="filter-group-label">Weitere:</span>
+                        <button class="filter-btn" data-filter-type="image" data-filter-value="with-image">Mit Bild</button>
+                        <button class="filter-btn" data-filter-type="image" data-filter-value="without-image">Ohne Bild</button>
+                    </div>
+                </div>
+            <?php endif; ?>
             
             <div class="angebote-items" id="angeboteItems">
                 <p class="no-angebote">Aktuell sind keine Anfragen verfügbar.</p>

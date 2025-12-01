@@ -143,33 +143,40 @@
     background: linear-gradient(to right, rgba(224, 224, 224, 0.15), #ffffff);
 }
 
-/* Category indicator - colored vertical bar on the left */
+/* Category indicator - colored vertical bar on the left + subtle background */
 .angebote-item.kategorie-gartenarbeit {
     border-left: 4px solid #4CAF50;
+    background: linear-gradient(to right, rgba(76, 175, 80, 0.08), #ffffff);
 }
 
 .angebote-item.kategorie-haushalt {
     border-left: 4px solid #2196F3;
+    background: linear-gradient(to right, rgba(33, 150, 243, 0.08), #ffffff);
 }
 
 .angebote-item.kategorie-umzug {
     border-left: 4px solid #FF9800;
+    background: linear-gradient(to right, rgba(255, 152, 0, 0.08), #ffffff);
 }
 
 .angebote-item.kategorie-reparatur {
     border-left: 4px solid #9C27B0;
+    background: linear-gradient(to right, rgba(156, 39, 176, 0.08), #ffffff);
 }
 
 .angebote-item.kategorie-betreuung {
     border-left: 4px solid #E91E63;
+    background: linear-gradient(to right, rgba(233, 30, 99, 0.08), #ffffff);
 }
 
 .angebote-item.kategorie-einkauf {
     border-left: 4px solid #00BCD4;
+    background: linear-gradient(to right, rgba(0, 188, 212, 0.08), #ffffff);
 }
 
 .angebote-item.kategorie-sonstiges {
     border-left: 4px solid #607D8B;
+    background: linear-gradient(to right, rgba(96, 125, 139, 0.08), #ffffff);
 }
 
 
@@ -723,59 +730,60 @@
     border-radius: 0 0 8px 8px;
 }
 
-/* Filter Dropdown */
-.angebote-filter-dropdown {
-    position: relative;
-}
-
-.filter-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    display: none;
-    flex-direction: column;
-    min-width: 200px;
-    max-width: 250px;
-    max-height: 400px;
-    overflow: hidden;
-    z-index: 1000;
-    padding: 8px;
-}
-
-.filter-dropdown-menu.active {
-    display: flex;
-}
-
-.filter-options {
+/* Filter Buttons Section */
+.angebote-filter-section {
     display: flex;
     flex-direction: column;
-    gap: 0;
-}
-
-.filter-option {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    padding: 10px 8px;
-    border-radius: 4px;
-}
-
-.filter-option:hover {
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
     background-color: #f8f9fa;
+    border-radius: 8px;
+    flex-shrink: 0;
 }
 
-.filter-option input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #84BF5E;
+.filter-buttons-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
 }
 
-.filter-option span {
-    font-size: 14px;
+.filter-group-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #5a6c7d;
+    margin-right: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-btn {
+    padding: 6px 14px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    background-color: #ffffff;
     color: #2c3e50;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.filter-btn:hover {
+    background-color: #f0f0f0;
+    border-color: #84BF5E;
+    color: #84BF5E;
+}
+
+.filter-btn.active {
+    background-color: #84BF5E;
+    color: #ffffff;
+    border-color: #84BF5E;
+}
+
+.filter-btn.active:hover {
+    background-color: #6ba04a;
+    border-color: #6ba04a;
 }
