@@ -1,0 +1,158 @@
+/* Dark Mode - Add Modal */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .add-modal-overlay {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+body.dark-mode .add-modal {
+    background-color: #2d2d2d;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .add-modal-header {
+    border-bottom: 1px solid #404040;
+}
+
+body.dark-mode .add-modal-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .add-modal-close {
+    color: #b0b0b0;
+}
+
+body.dark-mode .add-modal-close:hover {
+    background: #3a3a3a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .add-modal-body {
+    background: #2d2d2d;
+}
+
+body.dark-mode .form-group label {
+    color: #e0e0e0;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode textarea,
+body.dark-mode .form-group input[type="text"],
+body.dark-mode .form-group input[type="date"],
+body.dark-mode .form-group input[type="time"],
+body.dark-mode .form-group input[type="datetime-local"],
+body.dark-mode .form-group input[type="number"],
+body.dark-mode .form-group select,
+body.dark-mode .datetime-input {
+    background: #1f1f1f;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus,
+body.dark-mode textarea:focus,
+body.dark-mode .form-group input:focus,
+body.dark-mode .form-group select:focus,
+body.dark-mode .datetime-input:focus {
+    border-color: #84BF5E;
+}
+
+body.dark-mode .form-group input[readonly] {
+    background: #2d2d2d;
+    color: #b0b0b0;
+}
+
+body.dark-mode .file-upload-area {
+    background: #1f1f1f;
+    border: 2px dashed #404040;
+}
+
+body.dark-mode .file-upload-area:hover {
+    border-color: #84BF5E;
+}
+
+body.dark-mode .add-modal-footer {
+    border-top: 1px solid #404040;
+    background: #2d2d2d;
+}
+
+body.dark-mode .add-modal-form {
+    border-right: 1px solid #404040;
+}
+
+body.dark-mode .add-modal-map-consent {
+    background-color: #1f1f1f;
+}
+
+body.dark-mode .map-consent-message h3 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .map-consent-message p {
+    color: #b0b0b0;
+}
+
+body.dark-mode .btn-primary,
+body.dark-mode .map-consent-accept-btn {
+    background: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .btn-primary:hover,
+body.dark-mode .map-consent-accept-btn:hover {
+    background: #6ba04a;
+}
+
+body.dark-mode .btn-secondary {
+    background: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #404040;
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: #4a4a4a;
+}
+
+body.dark-mode .angebote-image-preview,
+body.dark-mode .file-upload-preview {
+    background: #1f1f1f;
+    border: 1px solid #404040;
+}
+
+body.dark-mode .form-hint {
+    color: #7a8a9a;
+}
+
+body.dark-mode .form-group label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .address-mode-selector {
+    background: #1f1f1f;
+    border: 1px solid #404040;
+}
+
+body.dark-mode .address-manual-field input {
+    background: #1f1f1f;
+    border-bottom: 2px solid #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .address-manual-field input:focus {
+    border-bottom-color: #84BF5E;
+}
+
+body.dark-mode .kategorie-selector-item {
+    background: #1f1f1f;
+    border: 2px solid #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .kategorie-selector-item:hover,
+body.dark-mode .kategorie-selector-item.active {
+    border-color: #84BF5E;
+    background: rgba(132, 191, 94, 0.1);
+}
+

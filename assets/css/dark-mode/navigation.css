@@ -1,0 +1,25 @@
+/* Dark Mode - Navigation */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .navigation-bar {
+    background-color: #2d2d2d;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .navigation-bar:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .nav-link {
+    color: #e0e0e0;
+}
+
+body.dark-mode .nav-link:hover {
+    color: #84BF5E;
+    background-color: rgba(132, 191, 94, 0.1);
+}
+
+body.dark-mode .nav-link.active {
+    color: #84BF5E;
+}
+

@@ -1,0 +1,443 @@
+.finanzen-banner {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    background-color: #84BF5E;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../../../assets/images/banner.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding: 60px 20px;
+    padding-top: 120px;
+    text-align: center;
+    position: relative;
+}
+
+.banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.banner-title {
+    font-size: 48px;
+    color: #ffffff;
+    margin-bottom: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.banner-text {
+    font-size: 20px;
+    color: #ffffff;
+    opacity: 0.95;
+    text-transform: uppercase;
+}
+
+/* Finanzen Button */
+.finanzen-open-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background-color: #ffffff;
+    border: 2px solid #84BF5E;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: #2c3e50;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.finanzen-open-btn:hover {
+    background-color: #84BF5E;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.finanzen-open-btn svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+/* Finanzen Modal */
+.finanzen-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    overflow: hidden;
+}
+
+.finanzen-modal-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.finanzen-modal-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 28px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    line-height: 1;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.finanzen-modal-close:hover {
+    background-color: rgba(255, 255, 255, 1);
+    transform: rotate(90deg);
+}
+
+.finanzen-papers-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+}
+
+/* A4 Papier Format: 210mm x 297mm (Ratio: 1:1.414) */
+.a4-paper {
+    background: #ffffff;
+    width: 210mm;
+    height: 297mm;
+    max-width: 210mm;
+    max-height: 297mm;
+    padding: 25mm;
+    box-shadow: 
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.2);
+    position: absolute;
+    cursor: grab;
+    transform-origin: center center;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    
+    /* Realistic paper texture */
+    background-image: 
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.02) 2px,
+            rgba(0, 0, 0, 0.02) 4px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.02) 2px,
+            rgba(0, 0, 0, 0.02) 4px
+        );
+    background-color: #ffffff;
+}
+
+.a4-paper:active {
+    cursor: grabbing;
+}
+
+/* Position papers in a spread pattern */
+.a4-paper[data-paper-index="0"] {
+    transform: translate(-320px, -120px) rotate(-4deg);
+}
+
+.a4-paper[data-paper-index="1"] {
+    transform: translate(-80px, -100px) rotate(3deg);
+}
+
+.a4-paper[data-paper-index="2"] {
+    transform: translate(160px, -140px) rotate(-2deg);
+}
+
+.a4-paper[data-paper-index="3"] {
+    transform: translate(400px, -110px) rotate(5deg);
+}
+
+.a4-paper[data-paper-index="4"] {
+    transform: translate(-280px, 120px) rotate(-3deg);
+}
+
+.a4-paper[data-paper-index="5"] {
+    transform: translate(0px, 140px) rotate(2deg);
+}
+
+.a4-paper[data-paper-index="6"] {
+    transform: translate(280px, 130px) rotate(-4deg);
+}
+
+.a4-paper[data-paper-index="7"] {
+    transform: translate(560px, 150px) rotate(3deg);
+}
+
+.finanzen-paper-content {
+    color: #2c3e50;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.finanzen-paper-content h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    border-bottom: 2px solid #84BF5E;
+    padding-bottom: 10px;
+}
+
+.finanzen-content-section {
+    margin-bottom: 20px;
+}
+
+.finanzen-content-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.finanzen-table {
+    width: 100%;
+    margin-top: 15px;
+}
+
+.finanzen-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.finanzen-row:last-child {
+    border-bottom: none;
+}
+
+.finanzen-row.finanzen-total {
+    border-top: 2px solid #2c3e50;
+    margin-top: 10px;
+    padding-top: 15px;
+    font-weight: 700;
+}
+
+.finanzen-label {
+    font-size: 14px;
+    color: #5a6c7d;
+}
+
+.finanzen-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.finanzen-value.positive {
+    color: #4CAF50;
+}
+
+.finanzen-value.negative {
+    color: #f44336;
+}
+
+/* Scrollbar Styling for papers */
+.a4-paper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.a4-paper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.a4-paper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.a4-paper::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive - smaller on mobile */
+@media (max-width: 768px) {
+    .a4-paper {
+        width: 80vw;
+        height: calc(80vw * 1.414);
+        max-width: 80vw;
+        max-height: calc(80vw * 1.414);
+        padding: 15mm;
+    }
+    
+    .a4-paper[data-paper-index="0"] {
+        transform: translate(-120px, -50px) rotate(-5deg);
+    }
+    
+    .a4-paper[data-paper-index="1"] {
+        transform: translate(0px, -40px) rotate(2deg);
+    }
+    
+    .a4-paper[data-paper-index="2"] {
+        transform: translate(120px, -60px) rotate(-3deg);
+    }
+    
+    .a4-paper[data-paper-index="3"] {
+        transform: translate(-100px, 80px) rotate(4deg);
+    }
+    
+    .a4-paper[data-paper-index="4"] {
+        transform: translate(30px, 70px) rotate(-2deg);
+    }
+    
+    .a4-paper[data-paper-index="5"] {
+        transform: translate(150px, 90px) rotate(3deg);
+    }
+}
+
+/* PDF View Modal */
+.pdf-view-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.pdf-view-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.pdf-view-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    cursor: pointer;
+}
+
+.pdf-view-container {
+    position: relative;
+    width: 90%;
+    max-width: 210mm;
+    max-height: 90vh;
+    background: #ffffff;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 1;
+    transform: scale(0.95);
+}
+
+.pdf-view-modal.active .pdf-view-container {
+    transform: scale(1);
+}
+
+.pdf-view-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 28px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    line-height: 1;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-view-close:hover {
+    background-color: rgba(255, 255, 255, 1);
+    transform: rotate(90deg);
+}
+
+.pdf-view-content {
+    padding: 40px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #ffffff;
+}
+
+.pdf-view-content h2 {
+    font-size: 28px;
+    margin-bottom: 24px;
+    color: #2c3e50;
+}
+
+.pdf-view-content h3 {
+    font-size: 20px;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+    .pdf-view-container {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .pdf-view-content {
+        padding: 24px;
+    }
+    
+    .pdf-view-close {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+        font-size: 24px;
+    }
+}
+

@@ -1,0 +1,52 @@
+/* Dark Mode - Finanzen */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .finanzen-open-btn {
+    background-color: #2d2d2d;
+    border: 2px solid #84BF5E;
+    color: #e0e0e0;
+}
+
+body.dark-mode .finanzen-open-btn:hover {
+    background-color: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .finanzen-modal-close {
+    background-color: rgba(45, 45, 45, 0.9);
+}
+
+body.dark-mode .finanzen-modal-content {
+    background: #2d2d2d;
+}
+
+body.dark-mode .finanzen-modal-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .finanzen-card {
+    background: #1f1f1f;
+    border: 1px solid #404040;
+}
+
+body.dark-mode .finanzen-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .finanzen-amount {
+    color: #84BF5E;
+}
+
+body.dark-mode .finanzen-text {
+    color: #b0b0b0;
+}
+
+body.dark-mode .finanzen-button {
+    background: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .finanzen-button:hover {
+    background: #6ba04a;
+}
+

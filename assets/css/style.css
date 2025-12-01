@@ -1,0 +1,127 @@
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --main-color: #84BF5E;
+    --main-color-dark: #6ba04a;
+    --text-color: #2c3e50;
+    --text-light: #5a6c7d;
+    --bg-color: #ffffff;
+    --border-color: #e0e0e0;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+html {
+    overflow-x: hidden;
+}
+
+body {
+    color: #2c3e50;
+    background-color: #f8f9fa;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+svg, svg *, img {
+    font-family: inherit;
+}
+
+/* Top Container */
+.top-container {
+    position: fixed;
+    top: 20px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 1000;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.top-container-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Chat Toggle Button */
+.chat-toggle-btn {
+    background: white;
+    border: 2px solid var(--main-color, #84BF5E);
+    color: var(--main-color, #84BF5E);
+    width: 55px;
+    aspect-ratio: 1/1;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.chat-toggle-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Chat box open - green background with filled icon */
+.chat-toggle-btn.chat-open {
+    background: var(--main-color, #84BF5E);
+    border-color: var(--main-color, #84BF5E);
+    color: white;
+}
+
+.chat-toggle-btn.chat-open:hover {
+    background: var(--main-color-dark, #6ba04a);
+    border-color: var(--main-color-dark, #6ba04a);
+}
+
+.chat-toggle-btn svg {
+    display: block;
+}
+
+/* Hide filled icon by default, show when chat is open */
+.chat-toggle-btn .chat-icon-filled {
+    display: none;
+}
+
+.chat-toggle-btn.chat-open .chat-icon-filled {
+    display: block;
+}
+
+.chat-toggle-btn.chat-open .chat-icon-outline {
+    display: none;
+}
+
+/* Chat notification badge */
+.chat-notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 10px;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    border: 2px solid white;
+}
+
+.chat-toggle-btn {
+    position: relative;
+}
+

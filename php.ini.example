@@ -1,0 +1,23 @@
+; PHP Configuration für NeighborNet - große Video-Uploads
+; Kopiere diese Datei zu php.ini oder füge diese Einstellungen zu deiner php.ini hinzu
+; WICHTIG: Nach Änderungen PHP-Server neu starten!
+
+; Maximale Größe für hochgeladene Dateien
+upload_max_filesize = 100M
+
+; Maximale Größe für POST-Daten (muss größer als upload_max_filesize sein)
+post_max_size = 100M
+
+; Maximale Ausführungszeit für Skripte (5 Minuten für große Uploads)
+max_execution_time = 300
+
+; Maximale Zeit für Eingabe-Verarbeitung
+max_input_time = 300
+
+; Speicherlimit
+memory_limit = 256M
+
+; Weitere empfohlene Einstellungen
+max_file_uploads = 20
+default_socket_timeout = 300
+

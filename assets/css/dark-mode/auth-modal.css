@@ -1,0 +1,72 @@
+/* Dark Mode - Auth Modal */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .auth-modal {
+    background: #2d2d2d;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .auth-modal-close {
+    color: #b0b0b0;
+}
+
+body.dark-mode .auth-modal-close:hover {
+    background: #3a3a3a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .auth-modal-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .auth-modal-subtitle {
+    color: #b0b0b0;
+}
+
+body.dark-mode .form-label {
+    color: #e0e0e0;
+}
+
+body.dark-mode .form-input,
+body.dark-mode .form-textarea,
+body.dark-mode .form-select {
+    background: #1f1f1f;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .form-input:focus,
+body.dark-mode .form-textarea:focus,
+body.dark-mode .form-select:focus {
+    border-color: #84BF5E;
+}
+
+body.dark-mode .form-error {
+    color: #ff6b6b;
+}
+
+body.dark-mode .auth-submit-btn {
+    background: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .auth-submit-btn:hover {
+    background: #6ba04a;
+}
+
+body.dark-mode .auth-switch-text {
+    color: #b0b0b0;
+}
+
+body.dark-mode .auth-switch-link {
+    color: #84BF5E;
+}
+
+body.dark-mode .auth-switch-text {
+    color: #b0b0b0;
+}
+
+body.dark-mode .forgot-password-link {
+    color: #84BF5E;
+}
+

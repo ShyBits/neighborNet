@@ -1,0 +1,231 @@
+.auth-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.auth-modal-overlay.active {
+    display: flex;
+}
+
+.auth-modal {
+    background: white;
+    border-radius: 50px;
+    padding: 40px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.auth-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #5a6c7d;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50px;
+    transition: all 0.3s;
+}
+
+.auth-modal-close:hover {
+    background: #f8f9fa;
+    color: #2c3e50;
+}
+
+.auth-modal-title {
+    font-size: 28px;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.auth-modal-subtitle {
+    color: #5a6c7d;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+.auth-form-container {
+    width: 100%;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+}
+
+.form-group-half {
+    flex: 1;
+}
+
+.form-group-street {
+    flex: 2;
+}
+
+.form-group-house {
+    flex: 1;
+    min-width: 100px;
+}
+
+.form-group-postcode {
+    flex: 1;
+    min-width: 120px;
+}
+
+.form-group-city {
+    flex: 2;
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    padding-right: 45px;
+    width: 100%;
+    flex: 1;
+    box-sizing: border-box;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5a6c7d;
+    z-index: 1;
+}
+
+.password-toggle-btn:hover {
+    color: #84BF5E;
+}
+
+.password-toggle-btn:focus {
+    outline: none;
+}
+
+.password-toggle-icon-eye,
+.password-toggle-icon-eye-off {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
+}
+
+.form-group label {
+    font-size: 14px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.form-group input {
+    padding: 12px 0;
+    border: none;
+    border-bottom: 2px solid #e0e0e0;
+    font-size: 16px;
+    background: transparent;
+    transition: border-color 0.3s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-bottom-color: #84BF5E;
+}
+
+.form-error {
+    color: #e74c3c;
+    font-size: 14px;
+    text-align: center;
+    min-height: 20px;
+    display: none;
+}
+
+.form-error.show {
+    display: block;
+}
+
+.auth-submit-btn {
+    background: #84BF5E;
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 50px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 10px;
+}
+
+.auth-submit-btn:hover {
+    background: #6ba04a;
+}
+
+.auth-switch-text {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #5a6c7d;
+}
+
+.auth-switch-text a {
+    color: #84BF5E;
+    text-decoration: none;
+}
+
+.auth-switch-text a:hover {
+    text-decoration: underline;
+}
+
+.forgot-password-link {
+    font-size: 12px;
+    color: #84BF5E;
+    text-decoration: none;
+    margin-top: 4px;
+    align-self: flex-start;
+}
+
+.forgot-password-link:hover {
+    text-decoration: underline;
+}
+

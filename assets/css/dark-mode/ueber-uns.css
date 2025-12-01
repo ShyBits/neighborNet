@@ -1,0 +1,20 @@
+/* Dark Mode - Über Uns */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .qa-page-container {
+    background: #1a1a1a;
+}
+
+body.dark-mode .qa-answer-content {
+    background: #2d2d2d;
+    border: 2px solid #84BF5E;
+}
+
+body.dark-mode .qa-answer-text {
+    color: #e0e0e0;
+}
+
+body.dark-mode .qa-answer-text strong {
+    color: #84BF5E;
+}
+

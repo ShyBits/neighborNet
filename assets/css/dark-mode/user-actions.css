@@ -1,0 +1,60 @@
+/* Dark Mode - User Actions */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .user-actions {
+    background-color: #2d2d2d;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .user-actions:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .profile-btn span {
+    color: #e0e0e0;
+}
+
+body.dark-mode .profile-btn:hover span {
+    color: #84BF5E;
+}
+
+body.dark-mode .profile-dropdown {
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .profile-dropdown-item {
+    color: #e0e0e0;
+}
+
+body.dark-mode .profile-dropdown-item:hover {
+    background: #3a3a3a;
+    color: #84BF5E;
+}
+
+body.dark-mode .auth-action-btn {
+    color: #e0e0e0;
+}
+
+body.dark-mode .auth-action-btn:hover {
+    border-color: #84BF5E;
+    color: #84BF5E;
+}
+
+body.dark-mode .register-action-btn {
+    background: #84BF5E;
+    color: white;
+    border: 2px solid #84BF5E;
+}
+
+body.dark-mode .register-action-btn:hover {
+    background: #6ba04a;
+    border-color: #6ba04a;
+    color: white;
+}
+
+body.dark-mode .guest-text {
+    color: #b0b0b0;
+}
+

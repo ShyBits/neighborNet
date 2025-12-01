@@ -1,0 +1,227 @@
+.user-actions-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.guest-auth-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    background-color: #ffffff;
+    padding: 4px 12px 4px 12px;
+    border-radius: 50px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    min-height: 56px;
+    height: 56px;
+    box-sizing: border-box;
+    backdrop-filter: blur(10px);
+}
+
+.user-actions:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.user-actions-logged-in {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 6px 0 24px;
+    border-radius: 50px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.profile-img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-btn:hover .profile-img {
+    transform: scale(1.05);
+}
+
+.profile-btn span {
+    color: #2c3e50;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.profile-btn:hover span {
+    color: #84BF5E;
+}
+
+.profile-dropdown-container {
+    position: relative;
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-width: 180px;
+    display: none;
+    z-index: 1000;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+.profile-dropdown.active {
+    display: block;
+}
+
+.profile-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #2c3e50;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.profile-dropdown-item:hover {
+    background: #f5f5f5;
+}
+
+.profile-dropdown-item:first-child {
+    border-radius: 8px 8px 0 0;
+}
+
+.profile-dropdown-item:last-child {
+    border-radius: 0 0 8px 8px;
+}
+
+.profile-dropdown-item svg {
+    flex-shrink: 0;
+}
+
+.auth-action-btn {
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    color: #2c3e50;
+    background: transparent;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-action-btn:hover {
+    border-color: #84BF5E;
+    color: #84BF5E;
+    box-shadow: 0 4px 12px rgba(132, 191, 94, 0.2);
+}
+
+.auth-action-btn:active {
+    transform: translateY(0);
+}
+
+.register-action-btn {
+    background: #84BF5E;
+    color: white;
+    border: 2px solid #84BF5E;
+    box-shadow: 0 2px 8px rgba(132, 191, 94, 0.3);
+}
+
+.register-action-btn:hover {
+    background: #6ba04a;
+    border-color: #6ba04a;
+    color: white;
+    box-shadow: 0 4px 16px rgba(132, 191, 94, 0.4);
+}
+
+.guest-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.guest-icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5a6c7d;
+    flex-shrink: 0;
+}
+
+.guest-icon-circle:hover {
+    background: #d0d0d0;
+    transform: scale(1.05);
+}
+
+.guest-icon-circle svg {
+    flex-shrink: 0;
+}
+
+.guest-logout-btn {
+    background: transparent;
+    color: #e74c3c;
+    border: 2px solid #e74c3c;
+}
+
+.guest-logout-btn:hover {
+    background: #e74c3c;
+    border-color: #c0392b;
+    color: white;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Dark Mode Toggle Button */
+.dark-mode-icon-sun,
+.dark-mode-icon-moon {
+    flex-shrink: 0;
+}
+
+.dark-mode-text {
+    flex: 1;
+    text-align: left;
+}

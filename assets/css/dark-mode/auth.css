@@ -1,0 +1,37 @@
+/* Dark Mode - Auth Pages */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .auth-box {
+    background: #2d2d2d;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .auth-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .auth-subtitle {
+    color: #b0b0b0;
+}
+
+body.dark-mode .form-group label {
+    color: #e0e0e0;
+}
+
+body.dark-mode .form-group input {
+    color: #e0e0e0;
+    border-bottom: 2px solid #404040;
+}
+
+body.dark-mode .form-group input:focus {
+    border-bottom-color: #84BF5E;
+}
+
+body.dark-mode .auth-link-text {
+    color: #b0b0b0;
+}
+
+body.dark-mode .auth-link-text a {
+    color: #84BF5E;
+}
+

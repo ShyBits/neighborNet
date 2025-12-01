@@ -1,0 +1,55 @@
+/* Dark Mode - Profile */
+/* Only changes white backgrounds, keeps main green color (#84BF5E) */
+
+body.dark-mode .profile-content {
+    background-color: #2d2d2d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .profile-avatar-img {
+    border: 6px solid #2d2d2d;
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .profile-stat-value {
+    color: #84BF5E;
+}
+
+body.dark-mode .profile-stat-label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .profile-section-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .badge-item {
+    background-color: #1f1f1f;
+    border: 2px solid #404040;
+}
+
+body.dark-mode .badge-name {
+    color: #e0e0e0;
+}
+
+body.dark-mode .comment-item {
+    background-color: #1f1f1f;
+    border-left: 4px solid #84BF5E;
+}
+
+body.dark-mode .comment-author {
+    color: #e0e0e0;
+}
+
+body.dark-mode .comment-text {
+    color: #b0b0b0;
+}
+
+body.dark-mode .profile-stats {
+    border-bottom: 2px solid #404040;
+}
+
+body.dark-mode .profile-badges {
+    border-bottom: 2px solid #404040;
+}
+
