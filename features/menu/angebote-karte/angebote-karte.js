@@ -39,15 +39,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const isLoggedIn = angeboteItems !== null;
     
     const addBtn = document.getElementById('addBtn');
+    const mainFilterBtn = document.getElementById('mainFilterBtn');
+    const mainFilterMenu = document.getElementById('mainFilterMenu');
     const filterDropdowns = document.querySelectorAll('.filter-dropdown');
+    
+    // Main Filter Dropdown öffnen/schließen
+    if (mainFilterBtn && mainFilterMenu) {
+        mainFilterBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            mainFilterMenu.classList.toggle('active');
+        });
+        
+        // Schließe beim Klicken außerhalb
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.main-filter-dropdown')) {
+                mainFilterMenu.classList.remove('active');
+            }
+        });
+    }
     
     let activeFilters = {
         category: null,
         date: null,
-        time: null,
+        timeFrom: null,
+        timeTo: null,
         image: null,
-        persons: null
+        persons: null,
+        location: {
+            enabled: false,
+            lat: null,
+            lng: null,
+            radius: 10 // km
+        }
     };
+    
+    let userLocation = null;
     
     // Filter-Dropdown Handler
     filterDropdowns.forEach(dropdown => {
@@ -59,9 +85,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Dropdown öffnen/schließen
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
-            // Schließe andere Dropdowns
+            // Schließe andere Dropdowns (nur innerhalb des Main Filter Menüs)
             filterDropdowns.forEach(d => {
-                if (d !== dropdown) {
+                if (d !== dropdown && d.closest('.main-filter-menu')) {
                     d.classList.remove('active');
                 }
             });
@@ -73,20 +99,40 @@ document.addEventListener('DOMContentLoaded', function() {
             option.addEventListener('click', function(e) {
                 e.stopPropagation();
                 
-                // Entferne active von allen Optionen in diesem Dropdown
-                options.forEach(opt => opt.classList.remove('active'));
-                
-                // Setze active auf ausgewählte Option
-                this.classList.add('active');
-                
-                // Update Filter-Wert
                 const filterValue = this.dataset.filterValue;
-                activeFilters[filterType] = filterValue;
+                const isCurrentlyActive = this.classList.contains('active');
                 
-                // Update Button Text
-                const btnText = btn.querySelector('.filter-dropdown-text');
-                btnText.textContent = this.textContent;
-                btn.classList.add('active');
+                // Wenn die Option bereits aktiv ist, entferne sie (Abwählen)
+                if (isCurrentlyActive) {
+                    this.classList.remove('active');
+                    activeFilters[filterType] = null;
+                    btn.classList.remove('active');
+                    
+                    // Setze Button-Text zurück
+                    const btnText = btn.querySelector('.filter-dropdown-text');
+                    const originalText = btn.dataset.filterType === 'category' ? 'Kategorie' :
+                                       btn.dataset.filterType === 'date' ? 'Datum' :
+                                       btn.dataset.filterType === 'time' ? 'Zeit' :
+                                       btn.dataset.filterType === 'image' ? 'Bild' :
+                                       btn.dataset.filterType === 'persons' ? 'Personen' : 'Alle';
+                    btnText.textContent = originalText;
+                } else {
+                    // Entferne active von allen Optionen in diesem Dropdown
+                    options.forEach(opt => opt.classList.remove('active'));
+                    
+                    // Setze active auf ausgewählte Option
+                    this.classList.add('active');
+                    activeFilters[filterType] = filterValue;
+                    btn.classList.add('active');
+                    
+                    // Update Button Text - keep it short
+                    const btnText = btn.querySelector('.filter-dropdown-text');
+                    let displayText = this.textContent;
+                    if (displayText.length > 15) {
+                        displayText = displayText.substring(0, 12) + '...';
+                    }
+                    btnText.textContent = displayText;
+                }
                 
                 // Schließe Dropdown
                 dropdown.classList.remove('active');
@@ -96,6 +142,174 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+    
+    // Personen-Input Filter
+    const filterPersonsInput = document.getElementById('filterPersons');
+    if (filterPersonsInput) {
+        filterPersonsInput.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            if (value && value > 0) {
+                activeFilters.persons = value;
+                this.classList.add('active');
+            } else {
+                activeFilters.persons = null;
+                this.classList.remove('active');
+            }
+            applyFilters();
+        });
+    }
+    
+    // Datum-Filter (Kalender)
+    const filterDateInput = document.getElementById('filterDate');
+    if (filterDateInput) {
+        // Klick auf Label öffnet den Kalender
+        const dateLabel = document.querySelector('.filter-date-label');
+        if (dateLabel) {
+            dateLabel.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Scroll nach unten, damit Kalender besser sichtbar ist
+                setTimeout(() => {
+                    if (filterDateInput.showPicker) {
+                        filterDateInput.showPicker();
+                    } else {
+                        filterDateInput.click();
+                    }
+                }, 100);
+            });
+        }
+        
+        filterDateInput.addEventListener('change', function() {
+            if (this.value) {
+                activeFilters.date = this.value;
+                this.classList.add('active');
+                // Update Label Text
+                const date = new Date(this.value + 'T00:00:00');
+                const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+                const label = document.querySelector('.filter-date-text');
+                if (label) label.textContent = dateStr;
+            } else {
+                activeFilters.date = null;
+                this.classList.remove('active');
+                const label = document.querySelector('.filter-date-text');
+                if (label) label.textContent = 'Datum';
+            }
+            applyFilters();
+        });
+        
+        // Doppelklick zum Zurücksetzen
+        filterDateInput.addEventListener('dblclick', function() {
+            this.value = '';
+            activeFilters.date = null;
+            this.classList.remove('active');
+            const label = document.querySelector('.filter-date-text');
+            if (label) label.textContent = 'Datum';
+            applyFilters();
+        });
+    }
+    
+    // Zeit-Filter (Time Range: Von-Bis) - Two Inputs
+    const filterTimeFrom = document.getElementById('filterTimeFrom');
+    const filterTimeTo = document.getElementById('filterTimeTo');
+    
+    if (filterTimeFrom && filterTimeTo) {
+        function updateTimeFilter() {
+            const hasFrom = filterTimeFrom.value !== '';
+            const hasTo = filterTimeTo.value !== '';
+            
+            if (hasFrom || hasTo) {
+                activeFilters.timeFrom = filterTimeFrom.value || null;
+                activeFilters.timeTo = filterTimeTo.value || null;
+                
+                // Markiere aktive Inputs
+                if (hasFrom) {
+                    filterTimeFrom.classList.add('active');
+                } else {
+                    filterTimeFrom.classList.remove('active');
+                }
+                
+                if (hasTo) {
+                    filterTimeTo.classList.add('active');
+                } else {
+                    filterTimeTo.classList.remove('active');
+                }
+            } else {
+                activeFilters.timeFrom = null;
+                activeFilters.timeTo = null;
+                filterTimeFrom.classList.remove('active');
+                filterTimeTo.classList.remove('active');
+            }
+            applyFilters();
+        }
+        
+        filterTimeFrom.addEventListener('change', updateTimeFilter);
+        filterTimeTo.addEventListener('change', updateTimeFilter);
+        
+        // Doppelklick zum Zurücksetzen
+        filterTimeFrom.addEventListener('dblclick', function() {
+            filterTimeFrom.value = '';
+            filterTimeTo.value = '';
+            updateTimeFilter();
+        });
+        
+        filterTimeTo.addEventListener('dblclick', function() {
+            filterTimeFrom.value = '';
+            filterTimeTo.value = '';
+            updateTimeFilter();
+        });
+    }
+    
+    // Standort-Filter (kompakt)
+    const filterLocationBtn = document.getElementById('filterLocationBtn');
+    const filterRadiusInput = document.getElementById('filterRadius');
+    
+    if (filterLocationBtn && filterRadiusInput) {
+        // Standort-Button: Aktiviert/Deaktiviert den Filter
+        filterLocationBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            if (!activeFilters.location.enabled) {
+                // Aktiviere Filter - hole Standort
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            userLocation = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            const radius = parseInt(filterRadiusInput.value) || 10;
+                            activeFilters.location.enabled = true;
+                            activeFilters.location.lat = userLocation.lat;
+                            activeFilters.location.lng = userLocation.lng;
+                            activeFilters.location.radius = radius;
+                            filterLocationBtn.classList.add('active');
+                            applyFilters();
+                        },
+                        function(error) {
+                            alert('Standort konnte nicht ermittelt werden. Bitte erlauben Sie den Zugriff auf Ihren Standort.');
+                        }
+                    );
+                } else {
+                    alert('Standort-Funktion wird von Ihrem Browser nicht unterstützt.');
+                }
+            } else {
+                // Deaktiviere Filter
+                activeFilters.location.enabled = false;
+                activeFilters.location.lat = null;
+                activeFilters.location.lng = null;
+                filterLocationBtn.classList.remove('active');
+                applyFilters();
+            }
+        });
+        
+        // Radius-Input: Aktualisiert den Radius und wendet Filter an
+        filterRadiusInput.addEventListener('input', function() {
+            const radius = parseInt(this.value) || 10;
+            activeFilters.location.radius = radius;
+            if (activeFilters.location.enabled) {
+                applyFilters();
+            }
+        });
+    }
     
     // Schließe Dropdowns beim Klicken außerhalb
     document.addEventListener('click', function(e) {
@@ -134,33 +348,40 @@ document.addEventListener('DOMContentLoaded', function() {
     function getFilteredAngebote() {
         let filtered = [...angebote];
         
-        // Filter nach Kategorien
-        if (activeFilters.categories.length > 0) {
+        // Filter nach Kategorie
+        if (activeFilters.category) {
             filtered = filtered.filter(angebot => {
-                return activeFilters.categories.includes(angebot.category);
+                return angebot.category === activeFilters.category;
             });
         }
         
-        // Filter nach Datum
+        // Filter nach Datum (spezifisches Datum)
         if (activeFilters.date) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
             filtered = filtered.filter(angebot => {
                 if (!angebot.start_date) return false;
+                const filterDate = new Date(activeFilters.date + 'T00:00:00');
+                filterDate.setHours(0, 0, 0, 0);
                 const startDate = new Date(angebot.start_date + 'T00:00:00');
                 startDate.setHours(0, 0, 0, 0);
+                return startDate.getTime() === filterDate.getTime();
+            });
+        }
+        
+        // Filter nach Zeit (Von-Bis Bereich)
+        if (activeFilters.timeFrom || activeFilters.timeTo) {
+            filtered = filtered.filter(angebot => {
+                if (!angebot.start_time) return false;
+                const angebotTime = angebot.start_time.substring(0, 5); // HH:MM
                 
-                if (activeFilters.date === 'today') {
-                    return startDate.getTime() === today.getTime();
-                } else if (activeFilters.date === 'week') {
-                    const weekAgo = new Date(today);
-                    weekAgo.setDate(today.getDate() - 7);
-                    return startDate >= weekAgo && startDate <= today;
-                } else if (activeFilters.date === 'month') {
-                    const monthAgo = new Date(today);
-                    monthAgo.setMonth(today.getMonth() - 1);
-                    return startDate >= monthAgo && startDate <= today;
+                if (activeFilters.timeFrom && activeFilters.timeTo) {
+                    // Beide Zeiten gesetzt: Prüfe ob Angebot-Zeit im Bereich liegt
+                    return angebotTime >= activeFilters.timeFrom && angebotTime <= activeFilters.timeTo;
+                } else if (activeFilters.timeFrom) {
+                    // Nur "Von" gesetzt: Angebot muss ab dieser Zeit sein
+                    return angebotTime >= activeFilters.timeFrom;
+                } else if (activeFilters.timeTo) {
+                    // Nur "Bis" gesetzt: Angebot muss bis zu dieser Zeit sein
+                    return angebotTime <= activeFilters.timeTo;
                 }
                 return true;
             });
@@ -179,7 +400,44 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
+        // Filter nach benötigten Personen (Minimum)
+        if (activeFilters.persons) {
+            filtered = filtered.filter(angebot => {
+                const requiredPersons = parseInt(angebot.required_persons) || 1;
+                return requiredPersons >= activeFilters.persons;
+            });
+        }
+        
+        // Filter nach Standort (Radius)
+        if (activeFilters.location.enabled && activeFilters.location.lat && activeFilters.location.lng) {
+            filtered = filtered.filter(angebot => {
+                if (!angebot.lat || !angebot.lng) return false;
+                
+                const distance = calculateDistance(
+                    activeFilters.location.lat,
+                    activeFilters.location.lng,
+                    parseFloat(angebot.lat),
+                    parseFloat(angebot.lng)
+                );
+                
+                return distance <= activeFilters.location.radius;
+            });
+        }
+        
         return filtered;
+    }
+    
+    // Hilfsfunktion: Berechnet Entfernung zwischen zwei Koordinaten (Haversine-Formel)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Radius der Erde in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; // Entfernung in km
     }
     
     function displayAngebote() {
@@ -430,6 +688,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function applyFilters() {
+        // Prüfe ob irgendein Filter aktiv ist
+        const hasActiveFilter = 
+            activeFilters.category !== null ||
+            activeFilters.date !== null ||
+            activeFilters.timeFrom !== null ||
+            activeFilters.timeTo !== null ||
+            activeFilters.image !== null ||
+            activeFilters.persons !== null ||
+            activeFilters.location.enabled;
+        
+        // Update Main Filter Button Status
+        if (mainFilterBtn) {
+            if (hasActiveFilter) {
+                mainFilterBtn.classList.add('active');
+            } else {
+                mainFilterBtn.classList.remove('active');
+            }
+        }
+        
         displayAngebote();
     }
     
