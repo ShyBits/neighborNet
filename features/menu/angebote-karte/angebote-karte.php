@@ -30,26 +30,89 @@ $canView = $isLoggedIn || $isGuest;
             </div>
             <?php if ($isLoggedIn): ?>
                 <div class="angebote-filter-section">
-                    <div class="filter-buttons-group">
-                        <span class="filter-group-label">Kategorien:</span>
-                        <button class="filter-btn" data-filter-type="category" data-filter-value="gartenarbeit">Gartenarbeit</button>
-                        <button class="filter-btn" data-filter-type="category" data-filter-value="haushalt">Haushalt</button>
-                        <button class="filter-btn" data-filter-type="category" data-filter-value="umzug">Umzug</button>
-                        <button class="filter-btn" data-filter-type="category" data-filter-value="reparatur">Reparatur</button>
-                        <button class="filter-btn" data-filter-type="category" data-filter-value="betreuung">Betreuung</button>
-                        <button class="filter-btn" data-filter-type="category" data-filter-value="einkauf">Einkauf</button>
-                        <button class="filter-btn" data-filter-type="category" data-filter-value="sonstiges">Sonstiges</button>
+                    <div class="filter-dropdown-wrapper">
+                        <label class="filter-dropdown-label">Kategorie</label>
+                        <div class="filter-dropdown">
+                            <button class="filter-dropdown-btn" data-filter-type="category">
+                                <span class="filter-dropdown-text">Alle Kategorien</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="filter-dropdown-menu">
+                                <button class="filter-dropdown-option" data-filter-value="gartenarbeit">Gartenarbeit</button>
+                                <button class="filter-dropdown-option" data-filter-value="haushalt">Haushalt</button>
+                                <button class="filter-dropdown-option" data-filter-value="umzug">Umzug</button>
+                                <button class="filter-dropdown-option" data-filter-value="reparatur">Reparatur</button>
+                                <button class="filter-dropdown-option" data-filter-value="betreuung">Betreuung</button>
+                                <button class="filter-dropdown-option" data-filter-value="einkauf">Einkauf</button>
+                                <button class="filter-dropdown-option" data-filter-value="sonstiges">Sonstiges</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="filter-buttons-group">
-                        <span class="filter-group-label">Zeitraum:</span>
-                        <button class="filter-btn" data-filter-type="date" data-filter-value="today">Heute</button>
-                        <button class="filter-btn" data-filter-type="date" data-filter-value="week">Diese Woche</button>
-                        <button class="filter-btn" data-filter-type="date" data-filter-value="month">Dieser Monat</button>
+                    <div class="filter-dropdown-wrapper">
+                        <label class="filter-dropdown-label">Datum</label>
+                        <div class="filter-dropdown">
+                            <button class="filter-dropdown-btn" data-filter-type="date">
+                                <span class="filter-dropdown-text">Alle Daten</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="filter-dropdown-menu">
+                                <button class="filter-dropdown-option" data-filter-value="today">Heute</button>
+                                <button class="filter-dropdown-option" data-filter-value="week">Diese Woche</button>
+                                <button class="filter-dropdown-option" data-filter-value="month">Dieser Monat</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="filter-buttons-group">
-                        <span class="filter-group-label">Weitere:</span>
-                        <button class="filter-btn" data-filter-type="image" data-filter-value="with-image">Mit Bild</button>
-                        <button class="filter-btn" data-filter-type="image" data-filter-value="without-image">Ohne Bild</button>
+                    <div class="filter-dropdown-wrapper">
+                        <label class="filter-dropdown-label">Zeit</label>
+                        <div class="filter-dropdown">
+                            <button class="filter-dropdown-btn" data-filter-type="time">
+                                <span class="filter-dropdown-text">Alle Zeiten</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="filter-dropdown-menu">
+                                <button class="filter-dropdown-option" data-filter-value="morning">Morgen (06:00-12:00)</button>
+                                <button class="filter-dropdown-option" data-filter-value="afternoon">Nachmittag (12:00-18:00)</button>
+                                <button class="filter-dropdown-option" data-filter-value="evening">Abend (18:00-24:00)</button>
+                                <button class="filter-dropdown-option" data-filter-value="night">Nacht (00:00-06:00)</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-dropdown-wrapper">
+                        <label class="filter-dropdown-label">Bild</label>
+                        <div class="filter-dropdown">
+                            <button class="filter-dropdown-btn" data-filter-type="image">
+                                <span class="filter-dropdown-text">Alle</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="filter-dropdown-menu">
+                                <button class="filter-dropdown-option" data-filter-value="with-image">Mit Bild</button>
+                                <button class="filter-dropdown-option" data-filter-value="without-image">Ohne Bild</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-dropdown-wrapper">
+                        <label class="filter-dropdown-label">Benötigte Personen</label>
+                        <div class="filter-dropdown">
+                            <button class="filter-dropdown-btn" data-filter-type="persons">
+                                <span class="filter-dropdown-text">Alle</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="filter-dropdown-menu">
+                                <button class="filter-dropdown-option" data-filter-value="1">1 Person</button>
+                                <button class="filter-dropdown-option" data-filter-value="2">2 Personen</button>
+                                <button class="filter-dropdown-option" data-filter-value="3">3+ Personen</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>

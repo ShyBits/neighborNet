@@ -39,60 +39,71 @@ document.addEventListener('DOMContentLoaded', function() {
     const isLoggedIn = angeboteItems !== null;
     
     const addBtn = document.getElementById('addBtn');
-    const filterButtons = document.querySelectorAll('.filter-btn');
+    const filterDropdowns = document.querySelectorAll('.filter-dropdown');
     
     let activeFilters = {
-        categories: [],
+        category: null,
         date: null,
-        image: null
+        time: null,
+        image: null,
+        persons: null
     };
     
-    // Filter-Button Klick-Handler
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const filterType = this.dataset.filterType;
-            const filterValue = this.dataset.filterValue;
-            
-            // Toggle button active state
-            this.classList.toggle('active');
-            
-            if (filterType === 'category') {
-                // Kategorien können mehrere sein
-                if (this.classList.contains('active')) {
-                    if (!activeFilters.categories.includes(filterValue)) {
-                        activeFilters.categories.push(filterValue);
-                    }
-                } else {
-                    activeFilters.categories = activeFilters.categories.filter(cat => cat !== filterValue);
+    // Filter-Dropdown Handler
+    filterDropdowns.forEach(dropdown => {
+        const btn = dropdown.querySelector('.filter-dropdown-btn');
+        const menu = dropdown.querySelector('.filter-dropdown-menu');
+        const options = menu.querySelectorAll('.filter-dropdown-option');
+        const filterType = btn.dataset.filterType;
+        
+        // Dropdown öffnen/schließen
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Schließe andere Dropdowns
+            filterDropdowns.forEach(d => {
+                if (d !== dropdown) {
+                    d.classList.remove('active');
                 }
-            } else if (filterType === 'date') {
-                // Datum ist exklusiv - nur einer kann aktiv sein
-                filterButtons.forEach(b => {
-                    if (b.dataset.filterType === 'date' && b !== this) {
-                        b.classList.remove('active');
-                    }
-                });
-                if (this.classList.contains('active')) {
-                    activeFilters.date = filterValue;
-                } else {
-                    activeFilters.date = null;
-                }
-            } else if (filterType === 'image') {
-                // Bild-Filter ist exklusiv
-                filterButtons.forEach(b => {
-                    if (b.dataset.filterType === 'image' && b !== this) {
-                        b.classList.remove('active');
-                    }
-                });
-                if (this.classList.contains('active')) {
-                    activeFilters.image = filterValue;
-                } else {
-                    activeFilters.image = null;
-                }
-            }
-            
-            applyFilters();
+            });
+            dropdown.classList.toggle('active');
         });
+        
+        // Option auswählen
+        options.forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // Entferne active von allen Optionen in diesem Dropdown
+                options.forEach(opt => opt.classList.remove('active'));
+                
+                // Setze active auf ausgewählte Option
+                this.classList.add('active');
+                
+                // Update Filter-Wert
+                const filterValue = this.dataset.filterValue;
+                activeFilters[filterType] = filterValue;
+                
+                // Update Button Text
+                const btnText = btn.querySelector('.filter-dropdown-text');
+                btnText.textContent = this.textContent;
+                btn.classList.add('active');
+                
+                // Schließe Dropdown
+                dropdown.classList.remove('active');
+                
+                // Wende Filter an
+                applyFilters();
+            });
+        });
+    });
+    
+    // Schließe Dropdowns beim Klicken außerhalb
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.filter-dropdown')) {
+            filterDropdowns.forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+        }
     });
     
     function loadAngebote() {
