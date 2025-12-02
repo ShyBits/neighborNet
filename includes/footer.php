@@ -1,3 +1,17 @@
+    <!-- Footer einbinden -->
+    <?php
+    // basePath sollte bereits von header.php gesetzt sein
+    if (!isset($basePath)) {
+        $basePath = '';
+    }
+    // Bestimme den korrekten Pfad für footer-content.php
+    // footer.php ist in includes/, footer-content.php ist auch in includes/
+    $footerContentPath = __DIR__ . '/footer-content.php';
+    if (file_exists($footerContentPath)) {
+        include $footerContentPath;
+    }
+    ?>
+    
     <!-- JavaScript Dateien laden -->
     <?php
     // basePath sollte bereits von header.php gesetzt sein

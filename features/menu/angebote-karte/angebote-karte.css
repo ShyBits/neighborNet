@@ -36,7 +36,7 @@
     width: calc(100% - 60px);
     max-width: none;
     margin: 0 auto;
-    padding: 40px 30px 0 30px;
+    padding: 40px 20px;
     display: flex;
     gap: 30px;
     align-items: flex-start;
@@ -64,7 +64,7 @@
 
 .angebote-filters-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     align-items: center;
     margin-bottom: 20px;
     gap: 12px;
@@ -72,7 +72,7 @@
     flex-shrink: 0;
 }
 
-/* Main Filter Dropdown */
+
 .main-filter-dropdown {
     position: relative;
 }
@@ -130,7 +130,7 @@
     display: flex;
 }
 
-/* Custom Scrollbar für Main Filter Menu */
+
 .main-filter-menu::-webkit-scrollbar {
     width: 6px;
 }
@@ -283,9 +283,15 @@
     position: relative;
     background: linear-gradient(to right, rgba(224, 224, 224, 0.15), #ffffff);
     cursor: pointer;
+    height: 180px;
+    min-height: 180px;
+    max-height: 180px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Category indicator - colored vertical bar on the left + subtle background */
+
 .angebote-item.kategorie-gartenarbeit {
     border-left: 4px solid #4CAF50;
     background: linear-gradient(to right, rgba(76, 175, 80, 0.08), #ffffff);
@@ -325,12 +331,16 @@
 .angebote-item-content {
     display: flex;
     gap: 12px;
+    height: 100%;
+    overflow: hidden;
 }
 
 .angebote-item-left {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .angebote-item-right {
@@ -409,7 +419,7 @@
 }
 
 .angebote-item-category-badge {
-    display: none; /* Dreiecke entfernt */
+    display: none; 
 }
 
 .angebote-item-category-badge span {
@@ -635,7 +645,7 @@
     position: relative;
 }
 
-/* Custom Popup Styling */
+
 .custom-popup .leaflet-popup-content-wrapper {
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -872,7 +882,7 @@
     border-radius: 0 0 8px 8px;
 }
 
-/* Filter Dropdowns - Compact Version */
+
 .filter-dropdown {
     position: relative;
 }
@@ -978,7 +988,7 @@
     color: #ffffff;
 }
 
-/* Filter Date (Calendar) */
+
 .filter-date-wrapper {
     position: relative;
     width: 100%;
@@ -1133,7 +1143,7 @@
     height: 14px;
 }
 
-/* Native Date/Time Picker Styling für Mobile */
+
 .filter-date-input::-webkit-calendar-picker-indicator {
     position: absolute;
     left: 0;
@@ -1160,7 +1170,7 @@
 }
 
 
-/* Filter Input (Number) */
+
 .filter-input-wrapper {
     display: flex;
     align-items: center;
@@ -1256,7 +1266,7 @@
     color: #2c3e50;
 }
 
-/* Filter Location - Reworked */
+
 .filter-location-wrapper {
     display: flex;
     align-items: center;
@@ -1392,7 +1402,7 @@
     opacity: 0.7;
 }
 
-/* Mobile Styles */
+
 @media (max-width: 768px) {
     .angebote-karte-banner {
         padding: 8px 16px;
@@ -1425,8 +1435,6 @@
     .angebote-karte-menu {
         flex-direction: column;
         width: 100%;
-        padding: 0;
-        gap: 0;
         height: 95vh;
         display: flex;
         overflow: hidden;
@@ -1498,6 +1506,9 @@
     .angebote-item {
         padding: 12px;
         padding-right: 50px;
+        height: 180px;
+        min-height: 180px;
+        max-height: 180px;
     }
     
     .angebote-item-content {
@@ -1555,6 +1566,9 @@
     .angebote-item {
         padding: 10px;
         padding-right: 45px;
+        height: 180px;
+        min-height: 180px;
+        max-height: 180px;
     }
     
     .angebote-item-title {

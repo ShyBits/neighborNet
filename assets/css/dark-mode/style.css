@@ -17,14 +17,24 @@ body.dark-mode :root {
 }
 
 /* Footer and other global elements */
-body.dark-mode footer {
-    background: #2d2d2d;
-    color: #e0e0e0;
-    border-top: 1px solid #404040;
+body.dark-mode .main-footer {
+    background: linear-gradient(135deg, #151515 0%, #1a1a1a 100%);
+    border-top: 2px solid #84BF5E;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
 }
 
-body.dark-mode .footer-content {
-    color: #b0b0b0;
+body.dark-mode .footer-bottom {
+    background: #0f0f0f;
+    border-top: 1px solid #2d2d2d;
+}
+
+body.dark-mode .footer-title {
+    color: #84BF5E;
+}
+
+body.dark-mode .footer-heading {
+    color: #e0e0e0;
+    border-bottom-color: #84BF5E;
 }
 
 body.dark-mode .footer-link {
@@ -33,6 +43,10 @@ body.dark-mode .footer-link {
 
 body.dark-mode .footer-link:hover {
     color: #84BF5E;
+}
+
+body.dark-mode .footer-copyright {
+    color: #808080;
 }
 
 /* Chat Toggle Button Dark Mode */

@@ -393,7 +393,7 @@
     gap: 16px;
 }
 
-/* Kompakterer Abstand für Adress-Formular */
+
 .form-group:has(.address-mode-selector) {
     margin-bottom: 16px;
 }

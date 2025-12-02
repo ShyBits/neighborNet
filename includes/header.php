@@ -79,6 +79,7 @@ if (isset($_SERVER['PHP_SELF'])) {
     
     <!-- CSS Dateien laden -->
     <link rel="stylesheet" href="<?php echo $basePath; ?>assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo $basePath; ?>assets/css/footer.css">
     <link rel="stylesheet" href="<?php echo $basePath; ?>features/navigation/navigation.css">
     <link rel="stylesheet" href="<?php echo $basePath; ?>features/navigation/user-actions.css">
     <link rel="stylesheet" href="<?php echo $basePath; ?>features/auth/auth-modal.css">

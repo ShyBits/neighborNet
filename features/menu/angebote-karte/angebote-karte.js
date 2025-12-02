@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const angeboteItems = document.getElementById('angeboteItems');
     const isLoggedIn = angeboteItems !== null;
+    // Prüfe ob Gast-Account (nur wenn angeboteItems existiert, da Gäste auch angeboteItems sehen können)
+    const isGuest = angeboteItems ? angeboteItems.dataset.isGuest === 'true' : false;
     
     const addBtn = document.getElementById('addBtn');
     const mainFilterBtn = document.getElementById('mainFilterBtn');
@@ -455,6 +457,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
+    // Mache loadAngebote global verfügbar, damit es vom Add-Modal aufgerufen werden kann
+    window.loadAngebote = loadAngebote;
+    
     function getFilteredAngebote() {
         let filtered = [...angebote];
         
@@ -628,9 +633,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="map-popup-value">${angebot.anfragen_count || 0} von ${angebot.required_persons || 1}</span>
                         </div>
                     </div>
-                    ${isLoggedIn && !isOwner && angebot.user_id ? `
+                    ${isLoggedIn && !isGuest && !isOwner && angebot.user_id ? `
                     <div class="map-popup-actions">
-                        <button class="map-popup-contact-btn" data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}">
+                        <button class="map-popup-contact-btn" data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                             </svg>
@@ -654,7 +659,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         e.stopPropagation();
                         const userId = parseInt(this.dataset.userId);
                         const username = this.dataset.username;
-                        contactUser(userId, username);
+                        const angebotId = parseInt(this.dataset.angebotId);
+                        contactUser(userId, username, angebot.title, angebotId);
                     });
                 }
             });
@@ -732,8 +738,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="angebote-item-footer">
                             <span class="angebote-item-author">Von ${angebot.author || 'Unbekannt'}</span>
                             <div class="angebote-item-actions">
-                                ${isLoggedIn && !isOwner && angebot.user_id ? `
-                                <button class="angebote-contact-btn" data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" title="Kontaktieren">
+                                ${isLoggedIn && !isGuest && !isOwner && angebot.user_id ? `
+                                <button class="angebote-contact-btn" data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}" title="Kontaktieren">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                                     </svg>
@@ -766,7 +772,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.stopPropagation();
                     const userId = parseInt(this.dataset.userId);
                     const username = this.dataset.username;
-                    contactUser(userId, username);
+                    const angebotId = parseInt(this.dataset.angebotId);
+                    contactUser(userId, username, angebot.title, angebotId);
                 });
             }
             
@@ -882,12 +889,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const mapConsentAcceptBtn = document.getElementById('mapConsentAcceptBtn');
     const mapConsentDialog = document.getElementById('mapConsentDialog');
     
+    // Track if event listeners are already attached to prevent duplicates
+    let mapControlsInitialized = false;
+    
     // Helper-Funktion zum Setzen des Consent-Cookies
     function setMapConsent(accepted) {
+        // Get current path for cookie
+        const path = window.location.pathname;
+        const cookiePath = path.substring(0, path.lastIndexOf('/') + 1) || '/';
+        
         if (accepted) {
-            document.cookie = 'map_consent=accepted; path=/; max-age=' + (365 * 24 * 60 * 60);
+            // Set cookie with proper path and SameSite attribute
+            document.cookie = 'map_consent=accepted; path=' + cookiePath + '; max-age=' + (365 * 24 * 60 * 60) + '; SameSite=Lax';
         } else {
-            document.cookie = 'map_consent=; path=/; max-age=0';
+            // Delete cookie
+            document.cookie = 'map_consent=; path=' + cookiePath + '; max-age=0';
         }
     }
     
@@ -982,6 +998,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Initialisiere Theme-Button und Location-Button
                             // Warte kurz, damit die Controls gerendert sind
                             setTimeout(function() {
+                                // Reset flag damit Controls initialisiert werden können
+                                mapControlsInitialized = false;
                                 initMapControls();
                             }, 100);
                         }
@@ -1006,201 +1024,116 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    if (themeBtn && themeMenu) {
-        themeBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            themeMenu.classList.toggle('active');
-        });
-        
-        document.addEventListener('click', function() {
-            themeMenu.classList.remove('active');
-        });
-        
-        const themeOptions = themeMenu.querySelectorAll('.theme-option');
-        for (let i = 0; i < themeOptions.length; i++) {
-            themeOptions[i].addEventListener('click', function(e) {
-                e.stopPropagation();
-                const theme = this.dataset.theme;
-                if (map && currentTileLayer) {
-                    map.removeLayer(currentTileLayer);
-                    currentTileLayer = L.tileLayer(themes[theme].url, {
-                        attribution: themes[theme].attribution,
-                        maxZoom: 19
-                    }).addTo(map);
-                    window.currentTileLayer = currentTileLayer;
-                }
-                themeMenu.classList.remove('active');
-            });
-        }
-    }
-    
-    if (locationBtn) {
-        locationBtn.addEventListener('click', function() {
-            if (!locationEnabled) {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        
-                        if (map) {
-                            if (userLocationMarker) {
-                                map.removeLayer(userLocationMarker);
-                            }
-                            
-                            userLocationMarker = L.marker([lat, lng], {
-                                icon: L.icon({
-                                    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiM4NEJGNUUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K',
-                                    iconSize: [24, 24],
-                                    iconAnchor: [12, 12]
-                                })
-                            }).addTo(map);
-                            
-                            map.setView([lat, lng], 13);
-                        }
-                        locationBtn.classList.add('active');
-                        locationEnabled = true;
-                        
-                        watchId = navigator.geolocation.watchPosition(function(pos) {
-                            const newLat = pos.coords.latitude;
-                            const newLng = pos.coords.longitude;
-                            if (userLocationMarker) {
-                                userLocationMarker.setLatLng([newLat, newLng]);
-                            }
-                        });
-                    }, function(error) {
-                        alert('Standort konnte nicht ermittelt werden');
-                    });
-                } else {
-                    alert('Geolocation wird von Ihrem Browser nicht unterstützt');
-                }
-            } else {
-                if (watchId !== null) {
-                    navigator.geolocation.clearWatch(watchId);
-                    watchId = null;
-                }
-                if (map && userLocationMarker) {
-                    map.removeLayer(userLocationMarker);
-                    userLocationMarker = null;
-                }
-                locationBtn.classList.remove('active');
-                locationEnabled = false;
-            }
-        });
-    }
-    
-    if (revokeBtn) {
-        revokeBtn.addEventListener('click', function() {
-            if (confirm('Möchten Sie die Einwilligung wirklich widerrufen? Die Karte wird dann nicht mehr angezeigt.')) {
-                setMapConsent(false);
-                
-                // Entferne Karte und Controls
-                const mapElement = document.getElementById('map');
-                const mapControls = document.querySelector('.map-controls');
-                if (mapElement) {
-                    if (window.mapInstance) {
-                        window.mapInstance.remove();
-                        window.mapInstance = null;
-                    }
-                    mapElement.remove();
-                }
-                if (mapControls) {
-                    mapControls.remove();
-                }
-                
-                // Zeige Consent-Dialog wieder an
-                const karteContainer = document.querySelector('.karte-container');
-                if (karteContainer) {
-                    const consentDialog = document.createElement('div');
-                    consentDialog.className = 'map-consent-dialog';
-                    consentDialog.id = 'mapConsentDialog';
-                    consentDialog.innerHTML = `
-                        <div class="consent-content">
-                            <h3>Karten-Einwilligung</h3>
-                            <p>Um die interaktive Karte zu nutzen, benötigen wir Ihre Einwilligung zur Anzeige von Kartenmaterial.</p>
-                            <button type="button" class="consent-accept-btn" id="mapConsentAcceptBtn">Einwilligen</button>
-                        </div>
-                    `;
-                    karteContainer.appendChild(consentDialog);
-                    
-                    // Füge Event-Listener zum neuen Button hinzu
-                    const newConsentBtn = document.getElementById('mapConsentAcceptBtn');
-                    if (newConsentBtn) {
-                        newConsentBtn.addEventListener('click', function() {
-                            setMapConsent(true);
-                            location.reload(); // Lade Seite neu, um Karte zu initialisieren
-                        });
-                    }
-                }
-            }
-        });
-    }
-    
-    // Funktion zum Initialisieren der Map-Controls (wird nach Karteninitialisierung aufgerufen)
+    // Funktion zum Initialisieren der Map-Controls (wird einmalig aufgerufen)
     function initMapControls() {
+        // Verhindere doppelte Initialisierung
+        if (mapControlsInitialized) {
+            return;
+        }
+        
         const themeBtn = document.getElementById('themeBtn');
         const themeMenu = document.getElementById('themeMenu');
         const locationBtn = document.getElementById('locationBtn');
         const revokeBtn = document.getElementById('revokeBtn');
         
-        if (themeBtn && themeMenu && window.mapInstance) {
+        // Prüfe ob map verfügbar ist (entweder map oder window.mapInstance)
+        const currentMap = map || window.mapInstance;
+        if (!currentMap) {
+            return;
+        }
+        
+        // Theme Button Handler
+        if (themeBtn && themeMenu && !themeBtn.dataset.listenerAttached) {
+            themeBtn.dataset.listenerAttached = 'true';
             themeBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 themeMenu.classList.toggle('active');
             });
             
-            document.addEventListener('click', function() {
-                themeMenu.classList.remove('active');
-            });
+            // Schließe Theme-Menu beim Klicken außerhalb
+            let themeMenuClickHandler = function(e) {
+                if (!e.target.closest('.map-theme-dropdown')) {
+                    themeMenu.classList.remove('active');
+                }
+            };
+            document.addEventListener('click', themeMenuClickHandler);
             
             const themeOptions = themeMenu.querySelectorAll('.theme-option');
             for (let i = 0; i < themeOptions.length; i++) {
-                themeOptions[i].addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const theme = this.dataset.theme;
-                    window.mapInstance.removeLayer(window.currentTileLayer);
-                    window.currentTileLayer = L.tileLayer(themes[theme].url, {
-                        attribution: themes[theme].attribution,
-                        maxZoom: 19
-                    }).addTo(window.mapInstance);
-                    themeMenu.classList.remove('active');
-                });
+                if (!themeOptions[i].dataset.listenerAttached) {
+                    themeOptions[i].dataset.listenerAttached = 'true';
+                    themeOptions[i].addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const theme = this.dataset.theme;
+                        if (currentMap && window.currentTileLayer) {
+                            currentMap.removeLayer(window.currentTileLayer);
+                            window.currentTileLayer = L.tileLayer(themes[theme].url, {
+                                attribution: themes[theme].attribution,
+                                maxZoom: 19
+                            }).addTo(currentMap);
+                            currentTileLayer = window.currentTileLayer;
+                        }
+                        themeMenu.classList.remove('active');
+                    });
+                }
             }
         }
         
-        if (locationBtn && window.mapInstance) {
-            locationBtn.addEventListener('click', function() {
-                if (!locationEnabled) {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(function(position) {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            
-                            if (userLocationMarker) {
-                                window.mapInstance.removeLayer(userLocationMarker);
-                            }
-                            
-                            userLocationMarker = L.marker([lat, lng], {
-                                icon: L.icon({
-                                    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiM4NEJGNUUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K',
-                                    iconSize: [24, 24],
-                                    iconAnchor: [12, 12]
-                                })
-                            }).addTo(window.mapInstance);
-                            
-                            window.mapInstance.setView([lat, lng], 13);
-                            locationBtn.classList.add('active');
-                            locationEnabled = true;
-                            
-                            watchId = navigator.geolocation.watchPosition(function(pos) {
-                                const newLat = pos.coords.latitude;
-                                const newLng = pos.coords.longitude;
-                                if (userLocationMarker) {
-                                    userLocationMarker.setLatLng([newLat, newLng]);
+         // Location Button Handler
+         if (locationBtn && !locationBtn.dataset.listenerAttached) {
+             locationBtn.dataset.listenerAttached = 'true';
+             locationBtn.addEventListener('click', function() {
+                 if (!locationEnabled) {
+                     // Versuche Geolocation zu verwenden - Browser zeigt eigene Fehlermeldung bei HTTP
+                     if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                
+                                if (currentMap) {
+                                    if (userLocationMarker) {
+                                        currentMap.removeLayer(userLocationMarker);
+                                    }
+                                    
+                                    userLocationMarker = L.marker([lat, lng], {
+                                        icon: L.icon({
+                                            iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiM4NEJGNUUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K',
+                                            iconSize: [24, 24],
+                                            iconAnchor: [12, 12]
+                                        })
+                                    }).addTo(currentMap);
+                                    
+                                    currentMap.setView([lat, lng], 13);
                                 }
-                            });
-                        }, function(error) {
-                            alert('Standort konnte nicht ermittelt werden');
-                        });
+                                locationBtn.classList.add('active');
+                                locationEnabled = true;
+                                
+                                watchId = navigator.geolocation.watchPosition(function(pos) {
+                                    const newLat = pos.coords.latitude;
+                                    const newLng = pos.coords.longitude;
+                                    if (userLocationMarker) {
+                                        userLocationMarker.setLatLng([newLat, newLng]);
+                                    }
+                                });
+                            },
+                            function(error) {
+                                let errorMsg = 'Standort konnte nicht ermittelt werden';
+                                if (error.code === error.PERMISSION_DENIED) {
+                                    errorMsg = 'Standort-Zugriff wurde verweigert. Bitte erlauben Sie den Zugriff in Ihren Browser-Einstellungen.';
+                                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                                    errorMsg = 'Standort-Informationen sind nicht verfügbar.';
+                                } else if (error.code === error.TIMEOUT) {
+                                    errorMsg = 'Zeitüberschreitung beim Abrufen des Standorts.';
+                                }
+                                alert(errorMsg);
+                            },
+                            {
+                                enableHighAccuracy: true,
+                                timeout: 10000,
+                                maximumAge: 0
+                            }
+                        );
                     } else {
                         alert('Geolocation wird von Ihrem Browser nicht unterstützt');
                     }
@@ -1209,8 +1142,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         navigator.geolocation.clearWatch(watchId);
                         watchId = null;
                     }
-                    if (userLocationMarker) {
-                        window.mapInstance.removeLayer(userLocationMarker);
+                    if (currentMap && userLocationMarker) {
+                        currentMap.removeLayer(userLocationMarker);
                         userLocationMarker = null;
                     }
                     locationBtn.classList.remove('active');
@@ -1218,10 +1151,102 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        
+        // Revoke Button Handler
+        if (revokeBtn && !revokeBtn.dataset.listenerAttached) {
+            revokeBtn.dataset.listenerAttached = 'true';
+            revokeBtn.addEventListener('click', function() {
+                if (confirm('Möchten Sie die Einwilligung wirklich widerrufen? Die Karte wird dann nicht mehr angezeigt.')) {
+                    setMapConsent(false);
+                    
+                    // Stoppe Geolocation-Watching falls aktiv
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
+                        watchId = null;
+                    }
+                    locationEnabled = false;
+                    
+                    // Entferne Karte und Controls vollständig
+                    const mapElement = document.getElementById('map');
+                    const mapControls = document.querySelector('.map-controls');
+                    
+                    if (mapElement) {
+                        if (window.mapInstance) {
+                            try {
+                                window.mapInstance.remove();
+                            } catch (e) {
+                                console.log('Map instance already removed');
+                            }
+                            window.mapInstance = null;
+                        }
+                        if (map) {
+                            try {
+                                map.remove();
+                            } catch (e) {
+                                console.log('Map already removed');
+                            }
+                            map = null;
+                        }
+                        mapElement.remove();
+                    }
+                    if (mapControls) {
+                        mapControls.remove();
+                    }
+                    
+                    // Entferne alle Marker
+                    if (userLocationMarker) {
+                        userLocationMarker = null;
+                    }
+                    
+                    // Leere den Container und zeige Consent-Dialog wieder an
+                    const karteContainer = document.querySelector('.karte-container');
+                    if (karteContainer) {
+                        // Entferne alle vorhandenen Inhalte
+                        karteContainer.innerHTML = '';
+                        
+                        // Erstelle Consent-Dialog
+                        const consentDialog = document.createElement('div');
+                        consentDialog.className = 'map-consent-dialog';
+                        consentDialog.id = 'mapConsentDialog';
+                        consentDialog.style.display = 'flex'; // Stelle sicher, dass es sichtbar ist
+                        consentDialog.innerHTML = `
+                            <div class="consent-content">
+                                <h3>Karten-Einwilligung</h3>
+                                <p>Um die interaktive Karte zu nutzen, benötigen wir Ihre Einwilligung zur Anzeige von Kartenmaterial.</p>
+                                <button type="button" class="consent-accept-btn" id="mapConsentAcceptBtn">Einwilligen</button>
+                            </div>
+                        `;
+                        karteContainer.appendChild(consentDialog);
+                        
+                        // Füge Event-Listener zum neuen Button hinzu
+                        const newConsentBtn = document.getElementById('mapConsentAcceptBtn');
+                        if (newConsentBtn) {
+                            newConsentBtn.addEventListener('click', function() {
+                                setMapConsent(true);
+                                location.reload(); // Lade Seite neu, um Karte zu initialisieren
+                            });
+                        }
+                    }
+                    
+                    // Reset initialization flag
+                    mapControlsInitialized = false;
+                }
+            });
+        }
+        
+        mapControlsInitialized = true;
+    }
+    
+    // Initialisiere Map-Controls wenn Buttons bereits vorhanden sind (bei Seitenladung mit Consent)
+    if (locationBtn || revokeBtn || themeBtn) {
+        // Warte kurz, damit die Karte initialisiert ist
+        setTimeout(function() {
+            initMapControls();
+        }, 100);
     }
     
     // Funktion zum Kontaktieren eines Benutzers (Chat öffnen)
-    function contactUser(userId, username) {
+    function contactUser(userId, username, angebotTitle = null, angebotId = null) {
         if (!isLoggedIn) {
             if (typeof window.openAuthModal === 'function') {
                 window.openAuthModal('login');
@@ -1231,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Prüfe ob Chat-Box verfügbar ist
         if (typeof window.createChatFromContact === 'function') {
-            window.createChatFromContact(userId, username);
+            window.createChatFromContact(userId, username, angebotTitle, angebotId);
         } else if (typeof window.openChat === 'function') {
             // Fallback: Versuche Chat direkt zu öffnen
             window.openChat(null, userId, username);
@@ -1243,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Warte kurz und versuche dann Chat zu öffnen
                 setTimeout(function() {
                     if (typeof window.createChatFromContact === 'function') {
-                        window.createChatFromContact(userId, username);
+                        window.createChatFromContact(userId, username, angebotTitle, angebotId);
                     }
                 }, 500);
             } else {

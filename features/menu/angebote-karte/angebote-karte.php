@@ -19,6 +19,13 @@ $canView = $isLoggedIn || $isGuest;
             </div>
                 <?php if ($isLoggedIn): ?>
                 <div class="angebote-filters-actions">
+                    <button class="angebote-add-btn" id="addBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Hinzufügen
+                    </button>
                     <div class="main-filter-dropdown">
                         <button class="main-filter-btn" id="mainFilterBtn">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -135,17 +142,10 @@ $canView = $isLoggedIn || $isGuest;
                                 </div>
                             </div>
                         </div>
-                        <button class="angebote-add-btn" id="addBtn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Hinzufügen
-                        </button>
                     </div>
                 <?php endif; ?>
             
-            <div class="angebote-items" id="angeboteItems">
+            <div class="angebote-items" id="angeboteItems" data-is-guest="<?php echo $isGuest ? 'true' : 'false'; ?>">
                 <p class="no-angebote">Aktuell sind keine Anfragen verfügbar.</p>
             </div>
         <?php else: ?>

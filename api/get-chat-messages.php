@@ -110,6 +110,21 @@ try {
             }
         }
         
+        // Parse anfrage data if message type is anfrage_request
+        $anfrageData = null;
+        if ($msg['file_type'] === 'anfrage_request' && $msg['file_path']) {
+            $anfrageData = json_decode($msg['file_path'], true);
+            if ($anfrageData && isset($anfrageData['anfrage_id'])) {
+                // Get anfrage status
+                $anfrageStmt = $conn->prepare("SELECT id, status FROM anfragen WHERE id = ?");
+                $anfrageStmt->execute([$anfrageData['anfrage_id']]);
+                $anfrage = $anfrageStmt->fetch(PDO::FETCH_ASSOC);
+                if ($anfrage) {
+                    $anfrageData['status'] = $anfrage['status'];
+                }
+            }
+        }
+        
         $formattedMessages[] = [
             'id' => intval($msg['id']),
             'sender_id' => intval($msg['sender_id']),
@@ -122,7 +137,8 @@ try {
             'name' => trim($msg['name']) ?: $msg['username'] ?? 'Unbekannt',
             'avatar' => $msg['avatar'] ?? null,
             'is_sent' => intval($msg['sender_id']) === $userId,
-            'chat_id' => $chatId
+            'chat_id' => $chatId,
+            'anfrage_data' => $anfrageData
         ];
     }
     

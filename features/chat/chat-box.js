@@ -1262,11 +1262,20 @@
             if (item.dataset.hasHandler === 'true') return;
             item.dataset.hasHandler = 'true';
             
-            item.addEventListener('click', async function() {
+            item.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                
                 const chatIdStr = this.dataset.chatId;
-                const chatId = chatIdStr ? parseInt(chatIdStr) : null;
+                const chatId = chatIdStr && chatIdStr !== 'null' && chatIdStr !== 'undefined' ? parseInt(chatIdStr) : null;
                 const userId = parseInt(this.dataset.userId);
-                const username = this.dataset.username;
+                const username = this.dataset.username || 'Unbekannt';
+                
+                // Validate inputs
+                if (!userId || isNaN(userId)) {
+                    console.error('Invalid userId:', this.dataset.userId);
+                    return;
+                }
                 
                 // Remove active from ALL contacts (both tabs) first
                 document.querySelectorAll('.chat-new-contact-item, .chat-contact-item').forEach(contactItem => {
@@ -1276,11 +1285,13 @@
                 // Mark ONLY this contact as active
                 this.classList.add('active');
                 
-                if (chatId) {
-                    // Always call openChat to ensure the chat is properly loaded
+                // Always open/load the chat, even if chatId exists
+                // This ensures the chat is properly loaded when switching between contacts
+                if (chatId && !isNaN(chatId) && chatId > 0) {
+                    // Chat exists - open it
                     await openChat(chatId, userId, username);
                 } else {
-                    // Create new chat
+                    // No chat yet - create new chat
                     await createNewChat(userId, username);
                 }
             });
@@ -1350,25 +1361,32 @@
         const previousChatId = currentChatId ? parseInt(currentChatId) : null;
         const previousContactId = currentContactId ? parseInt(currentContactId) : null;
         
-        if (previousChatId === numChatId && previousContactId === numUserId) {
+        // Only skip if it's exactly the same chat AND contact AND messages are already loaded
+        const isSameChat = (previousChatId === numChatId && previousContactId === numUserId);
+        
+        // Only skip if it's exactly the same chat AND messages are already loaded
+        // But always allow switching to a different chat
+        if (isSameChat) {
         const messagesContainer = document.getElementById('chatMessages');
             const hasMessages = messagesContainer && 
                                messagesContainer.querySelector('.chat-message') !== null &&
                                !messagesContainer.innerHTML.includes('chat-loading') && 
                                !messagesContainer.innerHTML.includes('chat-messages-empty');
             if (hasMessages) {
-                return; // Same chat, already loaded
+                // Same chat, already loaded - just mark as read and update
+                await markMessagesAsRead(numChatId);
+                await updateUnreadCount();
+                return;
             }
+            // Same chat but no messages loaded - continue to load
         }
+        // Different chat - always load it
         
-        // STEP 1: Abort all ongoing requests
+        // STEP 1: Abort all ongoing requests FIRST
         abortAllChatRequests();
         
-        // STEP 2: Set new chat state IMMEDIATELY
-        currentChatId = numChatId;
-        currentContactId = numUserId;
-        
-        // STEP 3: Clear UI and state
+        // STEP 2: ALWAYS clear old chat state when switching (even if same chat needs refresh)
+        // This ensures clean state for the new chat
         clearMessagesUI();
         currentMediaFiles = [];
         currentMediaIndex = 0;
@@ -1390,12 +1408,18 @@
             }
         }
         
+        // STEP 3: Set new chat state IMMEDIATELY (before any async operations)
+        // This is critical - set state first so all checks work correctly
+        currentChatId = numChatId;
+        currentContactId = numUserId;
+        
         // STEP 4: Update UI elements
         const chatEmptyState = document.getElementById('chatEmptyState');
         const chatMessagesHeader = document.getElementById('chatMessagesHeader');
         const chatMessagesContainer = document.getElementById('chatMessagesContainer');
         const chatInputContainer = document.getElementById('chatInputContainer');
         
+        // Always update UI elements when opening a chat (even if same chat, to ensure consistency)
         if (chatEmptyState) chatEmptyState.style.display = 'none';
         if (chatMessagesHeader) chatMessagesHeader.style.display = 'flex';
         if (chatMessagesContainer) chatMessagesContainer.style.display = 'flex';
@@ -1475,32 +1499,41 @@
             });
         }
         
-        // STEP 5: Load messages
+        // STEP 5: Load messages - Always load, even if chat is empty
         try {
+            // Load messages - this will always display, even if empty
+            // Don't check currentChatId here - we just set it above, so it should be correct
             const messages = await loadMessages(numChatId, true);
             
-            // Simple check: if currentChatId changed, user switched chats
+            // Verify we're still on this chat after loading (race condition check)
             const numCurrentAfterLoad = currentChatId ? parseInt(currentChatId) : null;
             if (numCurrentAfterLoad !== numChatId) {
-                clearMessagesUI();
+                // Chat changed during load (user clicked another contact), don't update UI
                 return;
             }
             
+            // We're still on the correct chat - finalize
             // Scroll to bottom if messages exist
             if (messages && messages.length > 0) {
                 setTimeout(() => scrollToBottom(), 100);
             }
             
-            // Update unread count after opening chat
+            // Mark messages as read (already done in loadMessages, but ensure it's done)
+            await markMessagesAsRead(numChatId);
             await updateUnreadCount();
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Fehler beim Laden der Nachrichten:', error);
             }
+            // On error, verify we're still on the correct chat
             const numCurrentError = currentChatId ? parseInt(currentChatId) : null;
-            if (numCurrentError !== numChatId) {
-                clearMessagesUI();
+            if (numCurrentError === numChatId) {
+                // Still on same chat, show empty state
+                const messages = [];
+                messagesCache.set(numChatId, messages);
+                await displayMessages(messages, numChatId);
             }
+            // If chat changed, do nothing (another openChat call will handle it)
         }
     }
     
@@ -1532,8 +1565,12 @@
             const data = await response.json();
             
             // Check if user switched chats while waiting for response
-            if (currentContactId !== userId && currentChatId) {
-                return;
+            // But allow if we're switching TO this user (currentContactId changed to userId)
+            const numCurrentContactId = currentContactId ? parseInt(currentContactId) : null;
+            const numCurrentChatId = currentChatId ? parseInt(currentChatId) : null;
+            if (numCurrentContactId !== userId && numCurrentChatId && numCurrentContactId !== null) {
+                // User switched to a different contact, don't open this chat
+                return null;
             }
             
             if (data.success && data.chat_id) {
@@ -1558,6 +1595,9 @@
                 // Do NOT reload new contacts when just opening a chat
                 // The contact should remain in "neue kontakte" until a message is sent
                 // Only after sending a message will loadNewContacts() be called to remove it
+                
+                // Return chat_id for use by createChatFromContact
+                return parseInt(data.chat_id);
             } else {
                 // Only show error if request wasn't aborted
                 if (!abortController.signal.aborted) {
@@ -1578,9 +1618,11 @@
                 currentCreateChatAbortController = null;
             }
         }
+        
+        return null;
     }
     
-    // Load messages - COMPLETE REWORK: Simple and direct
+    // Load messages - Simplified: Always display, even if empty
     async function loadMessages(chatId, markAsRead = true) {
         const numChatId = parseInt(chatId);
         if (!numChatId) {
@@ -1592,17 +1634,18 @@
         currentLoadMessagesAbortController = abortController;
         
         try {
-            // Simple check: are we still on this chat?
-            const numCurrent = currentChatId ? parseInt(currentChatId) : null;
-            if (numCurrent !== numChatId) {
-                return [];
-            }
-            
             // Fetch messages
+            // Note: We don't check currentChatId here because openChat sets it before calling this function
+            // If the chat changed, the abort controller will handle it
             const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
             const response = await fetch(basePath + `api/get-chat-messages.php?chat_id=${chatId}`, {
                 signal: abortController.signal
             });
+            
+            // Check if request was aborted
+            if (abortController.signal.aborted) {
+                return [];
+            }
             
             // Check again after fetch
             const numCurrentAfterFetch = currentChatId ? parseInt(currentChatId) : null;
@@ -1620,18 +1663,14 @@
             
             if (!data.success) {
                 console.error('Failed to load messages:', data.message);
-                return [];
+                // Still display empty state even on error
+                const messages = [];
+                messagesCache.set(numChatId, messages);
+                await displayMessages(messages, numChatId);
+                return messages;
             }
             
                 const messages = data.messages || [];
-            
-            // Verify messages belong to this chat
-            for (const msg of messages) {
-                const msgChatId = msg.chat_id ? parseInt(msg.chat_id) : null;
-                if (msgChatId !== numChatId) {
-                    return [];
-                }
-            }
             
             // Store participant IDs
             if (data.participant_ids && Array.isArray(data.participant_ids) && data.participant_ids.length >= 2) {
@@ -1641,20 +1680,26 @@
                 currentUserId = parseInt(data.current_user_id);
             }
             
-            // Final check before displaying
+            // Final check before displaying - but still display even if chat changed (for cleanup)
             const numCurrentFinal = currentChatId ? parseInt(currentChatId) : null;
             if (numCurrentFinal !== numChatId) {
+                // Chat changed, but we still want to display empty state for cleanup
                 clearMessagesUI();
                 return [];
             }
             
-            // Cache and display
+            // Cache and display - ALWAYS display, even if messages array is empty
             messagesCache.set(numChatId, messages);
                 if (messages.length > 0) {
                     const lastMsg = messages[messages.length - 1];
                     lastMessageIdCache.set(numChatId, lastMsg.id);
+            } else {
+                // Clear last message ID cache for empty chats
+                lastMessageIdCache.delete(numChatId);
                 }
                 
+            // ALWAYS call displayMessages, even if messages is empty
+            // This ensures the empty state is shown correctly
             await displayMessages(messages, numChatId);
             
             // Mark as read
@@ -1676,6 +1721,10 @@
             const numCurrentError = currentChatId ? parseInt(currentChatId) : null;
             if (numCurrentError === numChatId) {
             console.error('Fehler beim Laden der Nachrichten:', error);
+                // Still display empty state on error
+                const messages = [];
+                messagesCache.set(numChatId, messages);
+                await displayMessages(messages, numChatId);
             }
             return [];
         } finally {
@@ -1701,29 +1750,24 @@
             return;
         }
         
+        // If expected chat ID is provided, verify it matches
         if (numExpected && numExpected !== numCurrent) {
             clearMessagesUI();
             return;
         }
         
-        // Verify messages belong to current chat
+        // Verify messages belong to current chat (only if messages exist)
         if (messages && messages.length > 0) {
             for (const msg of messages) {
                 const msgChatId = msg.chat_id ? parseInt(msg.chat_id) : null;
-                if (msgChatId !== numCurrent) {
+                if (msgChatId && msgChatId !== numCurrent) {
                     clearMessagesUI();
                     return;
                 }
             }
         }
         
-        const chatIdFromMessages = messages.length > 0 && messages[0].chat_id ? parseInt(messages[0].chat_id) : null;
-        if (chatIdFromMessages && chatIdFromMessages !== numCurrent) {
-            clearMessagesUI();
-            return;
-        }
-        
-        // If no messages, show empty state
+        // If no messages, show empty state - this is valid and should be displayed
         if (!messages || messages.length === 0) {
             // Get contact name from header or use fallback
             const userNameEl = document.getElementById('chatUserName');
@@ -1768,7 +1812,8 @@
         let lastDate = null;
         
         // Get participant IDs for this chat
-        const chatId = messages.length > 0 ? parseInt(messages[0].chat_id) : null;
+        // Use currentChatId if messages are empty, otherwise use first message's chat_id
+        const chatId = (messages.length > 0 && messages[0].chat_id) ? parseInt(messages[0].chat_id) : numCurrent;
         const participantIds = chatId ? chatParticipants.get(chatId) : null;
         
         if (!participantIds && chatId) {
@@ -1799,7 +1844,9 @@
             clearMessagesUI();
             return;
         }
-        if (chatIdFromMessages && chatIdFromMessages !== numCurrent) {
+        
+        // Verify we're still on the correct chat
+        if (numCurrentAfterDecrypt !== numCurrent) {
             clearMessagesUI();
             return;
         }
@@ -2036,6 +2083,9 @@
         // Attach context menu listeners to all messages
         attachContextMenuListeners();
         
+        // Attach anfrage button listeners
+        attachAnfrageButtonListeners();
+        
         // Scroll to bottom if user was already at bottom
         if (wasAtBottom) {
             scrollToBottom();
@@ -2255,6 +2305,9 @@
         if (newMessageElement) {
             attachContextMenuToMessage(newMessageElement);
         }
+        
+        // Attach anfrage button listeners
+        attachAnfrageButtonListeners();
         
         // Check if user is near bottom, then scroll
         const wasAtBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop <= messagesContainer.clientHeight + 100;
@@ -2999,21 +3052,26 @@
         
         pollingInterval = setInterval(async () => {
             if (!isMinimized && !chatBox.classList.contains('hidden')) {
-                // Only update contacts to check for new messages (lightweight)
+                // Always update contacts to check for new messages and status changes (lightweight)
                 // Use reset=false to avoid reloading all contacts, just update the list
                 // The displayContacts function will handle duplicate filtering
                 await loadContacts(false);
                 
-                // Check if there are new messages in the currently open chat
+                // Always check for new messages in the currently open chat (live updates)
+                // This ensures real-time updates even when messages are already read
                 if (currentChatId) {
                     await checkForNewMessages(currentChatId);
                 }
+            } else {
+                // Even when minimized or hidden, update contacts list for status changes
+                // This ensures contact status (online/offline) stays updated
+                await loadContacts(false);
             }
             
             // Always update unread count (even when chat is closed or minimized)
             // This ensures badge stays updated
             await updateUnreadCount();
-        }, 2000); // Poll every 2 seconds for more responsive updates
+        }, 1500); // Poll every 1.5 seconds for more responsive live updates
     }
     
     // Check if there are new messages without loading all messages
@@ -3039,8 +3097,9 @@
             const contact = contactsCache.find(c => c.chat_id === chatId);
             if (!contact) return;
             
-            // Check if there are unread messages
-            if (contact.unread_count > 0) {
+            // Always check for new messages (live updates), not just when unread_count > 0
+            // This ensures real-time updates even when messages are already read
+            
                 // Double-check we're still on this chat
                 if (currentChatId !== chatId) {
                     return;
@@ -3219,7 +3278,6 @@
                                 await markMessagesAsRead(chatId);
                                 // Update unread count after marking as read
                                 await updateUnreadCount();
-                            }
                         }
                     }
                 }
@@ -3606,6 +3664,13 @@
     async function markMessagesAsRead(chatId) {
         if (!chatId) return;
         
+        // Verify we're still on this chat
+        const numChatId = parseInt(chatId);
+        const numCurrent = currentChatId ? parseInt(currentChatId) : null;
+        if (numCurrent !== numChatId) {
+            return; // User switched chats, don't mark as read
+        }
+        
         // Cancel any ongoing mark as read request
         if (currentMarkAsReadAbortController) {
             currentMarkAsReadAbortController.abort();
@@ -3617,15 +3682,35 @@
         
         try {
             const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
-            await fetch(basePath + 'api/mark-messages-read.php', {
+            const response = await fetch(basePath + 'api/mark-messages-read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `chat_id=${chatId}`,
                 signal: abortController.signal
             });
             
+            // Check if request was aborted
+            if (abortController.signal.aborted) {
+                return;
+            }
+            
+            // Verify we're still on this chat after fetch
+            const numCurrentAfterFetch = currentChatId ? parseInt(currentChatId) : null;
+            if (numCurrentAfterFetch !== numChatId) {
+                return; // User switched chats
+            }
+            
+            const data = await response.json();
+            
             // Update unread count after marking as read
+            if (data.success) {
+                // Update the contact in cache to reflect read status
+                const contact = contactsCache.find(c => c.chat_id === numChatId);
+                if (contact) {
+                    contact.unread_count = 0;
+                }
             await updateUnreadCount();
+            }
         } catch (error) {
             // Ignore AbortError
             if (error.name !== 'AbortError') {
@@ -4603,6 +4688,11 @@
         let content = '';
         const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
         
+        // Prüfe ob es eine Anfrage-Nachricht ist
+        if (message.file_type === 'anfrage_request' && message.anfrage_data) {
+            return generateAnfrageMessageContent(message, message.anfrage_data);
+        }
+        
         let files = [];
         let hasTextMessage = false;
         
@@ -4803,7 +4893,7 @@
     }
     
     // Public API for creating chat from contact button
-    window.createChatFromContact = async function(userId, username) {
+    window.createChatFromContact = async function(userId, username, angebotTitle = null, angebotId = null) {
         if (!chatBox || chatBox.classList.contains('hidden')) {
             showChatBox();
         }
@@ -4811,17 +4901,177 @@
         // Check if chat already exists in contacts cache
         const numUserId = parseInt(userId);
         const existingContact = contactsCache.find(c => c.user_id === numUserId);
+        let chatId = null;
+        
         if (existingContact && existingContact.chat_id) {
             // Chat exists and has messages - open it and switch to contacts view
-            await openChat(existingContact.chat_id, numUserId, username, false);
+            chatId = existingContact.chat_id;
+            await openChat(chatId, numUserId, username, false);
             // Switch to contacts view since this is an existing contact with messages
             switchView('contacts');
         } else {
             // No existing chat or chat has no messages yet
             // Create new chat but keep current view (don't force switch to contacts)
-            await createNewChat(numUserId, username, false);
+            chatId = await createNewChat(numUserId, username, false);
+        }
+        
+        // Wenn ein Angebot vorhanden ist, erstelle eine Anfrage-Nachricht
+        if (chatId && angebotId && angebotTitle) {
+            await createAnfrageFromChat(chatId, numUserId, angebotId, angebotTitle);
         }
     };
+    
+    // Erstelle Anfrage-Nachricht im Chat
+    async function createAnfrageFromChat(chatId, receiverId, angebotId, angebotTitle) {
+        try {
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('receiver_id', receiverId);
+            formData.append('angebot_id', angebotId);
+            
+            const response = await fetch(basePath + 'api/create-anfrage-from-chat.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                // Nachricht erfolgreich gesendet - lade Nachrichten neu
+                if (currentChatId === chatId) {
+                    await loadMessages(chatId, false);
+                }
+                // Lade Kontakte neu, damit der Chat in "Kontakte" erscheint
+                loadContacts();
+                loadNewContacts();
+            } else {
+                alert(data.message || 'Fehler beim Erstellen der Anfrage');
+            }
+        } catch (error) {
+            console.error('Fehler beim Erstellen der Anfrage:', error);
+            alert('Fehler beim Erstellen der Anfrage');
+        }
+    }
+    
+    // Rendere Anfrage-Nachricht mit Buttons
+    function generateAnfrageMessageContent(message, anfrageData) {
+        const isSent = message.is_sent;
+        const anfrageId = anfrageData.anfrage_id;
+        const status = anfrageData.status || 'pending';
+        const angebotTitle = anfrageData.angebot_title || '';
+        const isRequester = !isSent; // Empfänger ist der Hilfesuchende
+        const isHelper = isSent; // Sender ist der Hilfegebende
+        
+        let messageText = message.message || '';
+        let buttonHtml = '';
+        let messageClass = '';
+        
+        if (status === 'rejected') {
+            messageClass = 'anfrage-rejected';
+        } else if (status === 'accepted') {
+            messageClass = 'anfrage-accepted';
+            if (isRequester) {
+                // Hilfesuchender hat bereits angenommen - zeige Status
+                messageText = messageText + '<div class="anfrage-status-badge anfrage-status-accepted">Anfrage angenommen</div>';
+            } else if (isHelper) {
+                // Hilfegebender sieht, dass angenommen wurde - zeige Bestätigungs-Buttons
+                buttonHtml = `
+                    <div class="anfrage-buttons">
+                        <button class="anfrage-btn anfrage-btn-confirm" data-anfrage-id="${anfrageId}" data-action="confirm">
+                            Bestätigen
+                        </button>
+                        <button class="anfrage-btn anfrage-btn-reject" data-anfrage-id="${anfrageId}" data-action="cancel">
+                            Ablehnen
+                        </button>
+                    </div>
+                `;
+            }
+        } else if (status === 'confirmed') {
+            messageClass = 'anfrage-confirmed';
+            messageText = messageText + '<div class="anfrage-status-badge anfrage-status-confirmed">Hilfe bestätigt</div>';
+        } else if (status === 'pending') {
+            if (isRequester) {
+                // Hilfesuchender sieht Anfrage - zeige Annehmen/Ablehnen Buttons
+                buttonHtml = `
+                    <div class="anfrage-buttons">
+                        <button class="anfrage-btn anfrage-btn-accept" data-anfrage-id="${anfrageId}" data-action="accept">
+                            Annehmen
+                        </button>
+                        <button class="anfrage-btn anfrage-btn-reject" data-anfrage-id="${anfrageId}" data-action="reject">
+                            Ablehnen
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Hilfegebender sieht seine eigene Anfrage - zeige Status
+                messageText = messageText + '<div class="anfrage-status-badge anfrage-status-pending">Warte auf Antwort</div>';
+            }
+        }
+        
+        // messageText kann bereits HTML enthalten (Status-Badges)
+        const textContent = messageText.includes('<div') ? messageText : escapeHtml(messageText);
+        
+        return `
+            <div class="chat-message-anfrage ${messageClass}">
+                <div class="chat-message-text">${textContent}</div>
+                ${buttonHtml}
+            </div>
+        `;
+    }
+    
+    // Event-Handler für Anfrage-Buttons
+    function attachAnfrageButtonListeners() {
+        const buttons = document.querySelectorAll('.anfrage-btn');
+        buttons.forEach(btn => {
+            // Prüfe ob Listener bereits angehängt wurde
+            if (btn.dataset.listenerAttached === 'true') {
+                return;
+            }
+            btn.dataset.listenerAttached = 'true';
+            
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                const anfrageId = parseInt(this.dataset.anfrageId);
+                const action = this.dataset.action;
+                
+                if (!anfrageId || !action) return;
+                
+                // Deaktiviere Button während der Verarbeitung
+                this.disabled = true;
+                const originalText = this.textContent;
+                this.textContent = 'Wird verarbeitet...';
+                
+                try {
+                    const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+                    const formData = new FormData();
+                    formData.append('anfrage_id', anfrageId);
+                    formData.append('action', action);
+                    
+                    const response = await fetch(basePath + 'api/handle-anfrage.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        // Lade Nachrichten neu, um aktualisierten Status zu sehen
+                        if (currentChatId) {
+                            await loadMessages(currentChatId, false);
+                        }
+                    } else {
+                        alert(data.message || 'Fehler beim Verarbeiten der Anfrage');
+                        this.disabled = false;
+                        this.textContent = originalText;
+                    }
+                } catch (error) {
+                    console.error('Fehler:', error);
+                    alert('Fehler beim Verarbeiten der Anfrage');
+                    this.disabled = false;
+                    this.textContent = originalText;
+                }
+            });
+        });
+    }
 })();
 
 

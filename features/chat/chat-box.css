@@ -462,6 +462,7 @@
     background: #f8f9fa;
     flex-shrink: 1;
     flex-grow: 0;
+    order: 1; /* Always on the left */
 }
 
 /* Contacts Header */
@@ -747,6 +748,7 @@
     flex: 1;
     min-width: 200px;
     display: flex;
+    order: 2; /* Always on the right */
     flex-direction: column;
     background: white;
     position: relative;
@@ -1841,4 +1843,120 @@
 .context-menu-feedback.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+}
+
+/* Anfrage-Nachricht Styles */
+.chat-message-anfrage {
+    padding: 12px;
+    border-radius: 8px;
+    background: #f5f5f5;
+}
+
+.chat-message-anfrage.anfrage-rejected {
+    background: #fee;
+    border: 1px solid #fcc;
+}
+
+.chat-message-anfrage.anfrage-accepted {
+    background: #efe;
+    border: 1px solid #cfc;
+}
+
+.chat-message-anfrage.anfrage-confirmed {
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+}
+
+.chat-message-anfrage .chat-message-text {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.anfrage-status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.anfrage-status-badge.anfrage-status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.anfrage-status-badge.anfrage-status-accepted {
+    background: #d4edda;
+    color: #155724;
+}
+
+.anfrage-status-badge.anfrage-status-confirmed {
+    background: #c3e6cb;
+    color: #155724;
+}
+
+.anfrage-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.anfrage-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.anfrage-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.anfrage-btn-accept {
+    background: #4caf50;
+    color: white;
+}
+
+.anfrage-btn-accept:hover:not(:disabled) {
+    background: #45a049;
+}
+
+.anfrage-btn-reject {
+    background: #f44336;
+    color: white;
+}
+
+.anfrage-btn-reject:hover:not(:disabled) {
+    background: #da190b;
+}
+
+.anfrage-btn-confirm {
+    background: #2196f3;
+    color: white;
+}
+
+.anfrage-btn-confirm:hover:not(:disabled) {
+    background: #0b7dda;
+}
+
+.chat-message.sent .chat-message-anfrage {
+    background: #e3f2fd;
+}
+
+.chat-message.sent .chat-message-anfrage.anfrage-rejected {
+    background: #ffebee;
+}
+
+.chat-message.sent .chat-message-anfrage.anfrage-accepted {
+    background: #e8f5e9;
+}
+
+.chat-message.sent .chat-message-anfrage.anfrage-confirmed {
+    background: #c8e6c9;
 }

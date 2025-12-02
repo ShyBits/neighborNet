@@ -1,0 +1,243 @@
+/* Footer Styles - Dark Design */
+.main-footer {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #e0e0e0;
+    border-top: 2px solid #84BF5E;
+    padding: 0;
+    width: 100%;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 50px 20px 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+}
+
+.footer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.footer-logo-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(67%) sepia(47%) saturate(500%) hue-rotate(60deg) brightness(95%) contrast(85%);
+}
+
+.footer-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #84BF5E;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.footer-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #b0b0b0;
+    margin: 0;
+}
+
+.footer-heading {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #84BF5E;
+    padding-bottom: 8px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.footer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.footer-list li {
+    margin: 0;
+}
+
+.footer-link {
+    color: #b0b0b0;
+    text-decoration: none;
+    font-size: 14px;
+    display: inline-block;
+}
+
+.footer-link:hover {
+    color: #84BF5E;
+}
+
+.footer-bottom {
+    background: #151515;
+    border-top: 1px solid #404040;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.footer-bottom-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.footer-copyright {
+    color: #808080;
+    font-size: 13px;
+    margin: 0;
+}
+
+/* Responsive Design - Mobile */
+@media (max-width: 768px) {
+    .footer-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 30px 15px;
+        padding: 40px 20px 20px;
+    }
+    
+    .footer-about {
+        text-align: left;
+        grid-column: 1 / -1;
+    }
+    
+    .footer-logo-title {
+        justify-content: flex-start;
+    }
+    
+    /* Navigation, Kontakt und Rechtliches nebeneinander */
+    .footer-links {
+        grid-column: 1;
+        text-align: left;
+    }
+    
+    .footer-contact {
+        grid-column: 2;
+        text-align: left;
+    }
+    
+    .footer-legal {
+        grid-column: 3;
+        text-align: left;
+    }
+    
+    .footer-section {
+        text-align: left;
+    }
+    
+    .footer-heading {
+        margin: 0;
+        font-size: 14px;
+    }
+    
+    .footer-list {
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .footer-link {
+        text-align: left;
+        font-size: 13px;
+    }
+    
+    .footer-link:hover {
+        color: #84BF5E;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer-container {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 25px 10px;
+        padding: 30px 15px 20px;
+    }
+    
+    .footer-about {
+        text-align: left;
+        grid-column: 1 / -1;
+    }
+    
+    .footer-logo-title {
+        justify-content: flex-start;
+        gap: 10px;
+    }
+    
+    .footer-logo {
+        height: 32px;
+    }
+    
+    .footer-title {
+        font-size: 20px;
+    }
+    
+    .footer-description {
+        font-size: 13px;
+    }
+    
+    /* Navigation, Kontakt und Rechtliches nebeneinander auf Mobile */
+    .footer-links {
+        grid-column: 1;
+        text-align: left;
+    }
+    
+    .footer-contact {
+        grid-column: 2;
+        text-align: left;
+    }
+    
+    .footer-legal {
+        grid-column: 3;
+        text-align: left;
+    }
+    
+    .footer-section {
+        text-align: left;
+        gap: 10px;
+    }
+    
+    .footer-heading {
+        font-size: 12px;
+        margin: 0;
+        padding-bottom: 6px;
+    }
+    
+    .footer-list {
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .footer-link {
+        text-align: left;
+        font-size: 11px;
+    }
+    
+    .footer-bottom-content {
+        text-align: left;
+    }
+    
+    .footer-copyright {
+        font-size: 11px;
+    }
+}
+

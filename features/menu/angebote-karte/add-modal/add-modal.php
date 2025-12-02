@@ -30,7 +30,7 @@ $hasConsent = isset($_COOKIE['map_consent']) && $_COOKIE['map_consent'] === 'acc
                         </select>
                     </div>
                     <div class="form-group-third form-group-narrow">
-                        <label for="angebotRequiredPersons">Benötigte Personen</label>
+                        <label for="angebotRequiredPersons">Helkannsfer anz.</label>
                         <input type="number" id="angebotRequiredPersons" min="1" max="100" value="1" placeholder="z.B. 2">
                     </div>
                 </div>

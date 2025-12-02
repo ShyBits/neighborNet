@@ -31,8 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle Karten-Einwilligung im Modal
     if (addModalConsentBtn) {
         addModalConsentBtn.addEventListener('click', function() {
-            // Setze Cookie
-            document.cookie = 'map_consent=accepted; path=/; max-age=' + (365 * 24 * 60 * 60);
+            // Setze Cookie mit korrektem Pfad
+            const path = window.location.pathname;
+            const cookiePath = path.substring(0, path.lastIndexOf('/') + 1) || '/';
+            document.cookie = 'map_consent=accepted; path=' + cookiePath + '; max-age=' + (365 * 24 * 60 * 60) + '; SameSite=Lax';
             
             // Ersetze Einwilligungsmeldung durch Karte
             const addModalMapContainer = document.querySelector('.add-modal-map');
@@ -208,16 +210,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function resetForm() {
-        document.getElementById('angebotTitle').value = '';
-        document.getElementById('angebotDescription').value = '';
-        document.getElementById('angebotCategory').value = '';
-        document.getElementById('angebotStartDate').value = '';
-        document.getElementById('angebotStartTime').value = '';
-        document.getElementById('angebotEndTime').value = '';
-        document.getElementById('angebotEndDate').value = '';
-        document.getElementById('angebotAddress').value = '';
+        const titleInput = document.getElementById('angebotTitle');
+        const descriptionInput = document.getElementById('angebotDescription');
+        const categoryInput = document.getElementById('angebotCategory');
+        const startDateTimeInput = document.getElementById('angebotStartDateTime');
+        const endDateTimeInput = document.getElementById('angebotEndDateTime');
+        const addressInput = document.getElementById('angebotAddress');
+        const requiredPersonsInput = document.getElementById('angebotRequiredPersons');
+        
+        if (titleInput) titleInput.value = '';
+        if (descriptionInput) descriptionInput.value = '';
+        if (categoryInput) categoryInput.value = '';
+        if (startDateTimeInput) startDateTimeInput.value = '';
+        if (endDateTimeInput) endDateTimeInput.value = '';
+        if (addressInput) addressInput.value = '';
+        if (requiredPersonsInput) requiredPersonsInput.value = '1';
+        
         uploadedFiles = [];
-        filePreviewContainer.innerHTML = '';
+        if (filePreviewContainer) filePreviewContainer.innerHTML = '';
         selectedLat = null;
         selectedLng = null;
         addressMode = 'auto';
@@ -778,11 +788,18 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 closeModal();
-                if (typeof loadAngebote === 'function') {
-                    loadAngebote();
-                } else {
-                    location.reload();
-                }
+                // Lade Angebote neu - prüfe ob Funktion verfügbar ist
+                // Die loadAngebote Funktion ist im angebote-karte.js definiert
+                // Versuche sie über das globale Window-Objekt oder direkt aufzurufen
+                setTimeout(function() {
+                    // Prüfe verschiedene Möglichkeiten, die Funktion zu finden
+                    if (typeof window.loadAngebote === 'function') {
+                        window.loadAngebote();
+                    } else {
+                        // Fallback: Seite neu laden, um die neuen Angebote zu sehen
+                        location.reload();
+                    }
+                }, 100);
             } else {
                 alert('Fehler: ' + data.message);
             }

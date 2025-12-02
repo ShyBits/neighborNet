@@ -77,27 +77,37 @@ try {
     }
     
     // Get all chats for this user with contact information
-    // Only return chats that have at least one message exchanged
-    // Use DISTINCT to ensure no duplicate chats
+    // Include ALL chats, even if they have no messages yet
+    // Simplified query for better SQL compatibility
+    if ($driver === 'mysql') {
+        $concatFunction = "CONCAT";
+        $trimFunction = "TRIM";
+    } elseif ($driver === 'pgsql') {
+        $concatFunction = "CONCAT";
+        $trimFunction = "TRIM";
+    } else {
+        // SQLite
+        $concatFunction = "(";
+        $trimFunction = "TRIM";
+    }
+    
+    // Build name concatenation based on driver
+    // Since we're always getting cp2 (the other participant), we only need u2
+    if ($driver === 'sqlite') {
+        $nameSQL = "TRIM(COALESCE(u2.first_name, '') || ' ' || COALESCE(u2.last_name, '')) as name";
+    } else {
+        $nameSQL = "TRIM(CONCAT(COALESCE(u2.first_name, ''), ' ', COALESCE(u2.last_name, ''))) as name";
+    }
+    
+    // Simplified query: Get the other participant for each chat
+    // This ensures we get exactly one row per chat
     $stmt = $conn->prepare("
-        SELECT DISTINCT
+        SELECT 
             c.id as chat_id,
-            CASE 
-                WHEN cp1.user_id = ? THEN cp2.user_id
-                ELSE cp1.user_id
-            END as user_id,
-            CASE 
-                WHEN cp1.user_id = ? THEN u2.username
-                ELSE u1.username
-            END as username,
-            CASE 
-                WHEN cp1.user_id = ? THEN CONCAT(COALESCE(u2.first_name, ''), ' ', COALESCE(u2.last_name, ''))
-                ELSE CONCAT(COALESCE(u1.first_name, ''), ' ', COALESCE(u1.last_name, ''))
-            END as name,
-            CASE 
-                WHEN cp1.user_id = ? THEN u2.avatar
-                ELSE u1.avatar
-            END as avatar,
+            cp2.user_id as user_id,
+            u2.username as username,
+            {$nameSQL},
+            u2.avatar as avatar,
             cm.last_message_at,
             cm.last_message_id,
             cm.unread_count_user_1,
@@ -117,54 +127,26 @@ try {
         FROM chats c
         INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
         INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
-        LEFT JOIN users u1 ON cp1.user_id = u1.id
         LEFT JOIN users u2 ON cp2.user_id = u2.id
         LEFT JOIN chat_metadata cm ON c.id = cm.chat_id
-        LEFT JOIN messages m ON cm.last_message_id = m.id
-        LEFT JOIN user_activity ua ON ua.user_id = CASE 
-            WHEN cp1.user_id = ? THEN cp2.user_id
-            ELSE cp1.user_id
-        END
-        WHERE EXISTS (
-            -- Only include chats that have at least one message between the two participants
-            SELECT 1 FROM messages m2 
-            WHERE (
-                -- Check by chat_id if available
-                (m2.chat_id IS NOT NULL AND m2.chat_id = c.id)
-                OR 
-                -- Fallback: check by sender/receiver for older messages without chat_id
-                (
-                    (m2.sender_id = cp1.user_id AND m2.receiver_id = cp2.user_id)
-                    OR 
-                    (m2.sender_id = cp2.user_id AND m2.receiver_id = cp1.user_id)
-                )
-            )
-        )
+        LEFT JOIN messages m ON (cm.last_message_id = m.id AND m.chat_id = c.id)
+        LEFT JOIN user_activity ua ON ua.user_id = cp2.user_id
+        -- Include ALL chats, even if they have no messages yet
+        -- This allows opening empty chats that were just created
         ORDER BY COALESCE(cm.last_message_at, c.created_at) DESC
         LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
     ");
     
-    $stmt->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
+    // Execute with parameters: userId (for unread_count CASE), userId (for cp1), userId (for cp2)
+    $stmt->execute([$userId, $userId, $userId]);
     $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get total count - ensure distinct
+    // Get total count - include ALL chats, even empty ones
     $countStmt = $conn->prepare("
         SELECT COUNT(DISTINCT c.id) as total
         FROM chats c
         INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
         INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
-        WHERE EXISTS (
-            SELECT 1 FROM messages m2 
-            WHERE (
-                (m2.chat_id IS NOT NULL AND m2.chat_id = c.id)
-                OR 
-                (
-                    (m2.sender_id = cp1.user_id AND m2.receiver_id = cp2.user_id)
-                    OR 
-                    (m2.sender_id = cp2.user_id AND m2.receiver_id = cp1.user_id)
-                )
-            )
-        )
     ");
     $countStmt->execute([$userId, $userId]);
     $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
