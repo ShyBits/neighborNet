@@ -65,6 +65,13 @@
     flex-shrink: 0;
 }
 
+/* Hide finanzen button on mobile - it's now in the sidebar */
+@media (max-width: 768px) {
+    .finanzen-open-btn {
+        display: none !important;
+    }
+}
+
 /* Finanzen Modal */
 .finanzen-modal-overlay {
     position: fixed;

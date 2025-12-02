@@ -1,13 +1,42 @@
 document.addEventListener('DOMContentLoaded', function() {
     const finanzenOpenBtn = document.getElementById('finanzenOpenBtn');
+    const mobileFinanzenBtn = document.getElementById('mobileFinanzenBtn');
     const finanzenModalOverlay = document.getElementById('finanzenModalOverlay');
     const finanzenModalContainer = document.getElementById('finanzenModalContainer');
     const finanzenPapersContainer = document.getElementById('finanzenPapersContainer');
     const finanzenModalClose = document.getElementById('finanzenModalClose');
     const papers = document.querySelectorAll('.a4-paper');
     
-    if (!finanzenOpenBtn || !finanzenModalOverlay || !finanzenPapersContainer) {
+    // Function to open finanzen modal
+    function openFinanzenModal() {
+        if (finanzenModalOverlay) {
+            finanzenModalOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Close mobile menu if open
+            const navMenuMobile = document.getElementById('navMenuMobile');
+            if (navMenuMobile && navMenuMobile.classList.contains('active')) {
+                const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+                if (mobileMenuToggle) mobileMenuToggle.classList.remove('active');
+                if (navMenuMobile) navMenuMobile.classList.remove('active');
+                const navMenuOverlay = document.getElementById('navMenuOverlay');
+                if (navMenuOverlay) navMenuOverlay.classList.remove('active');
+            }
+        }
+    }
+    
+    if (!finanzenModalOverlay || !finanzenPapersContainer) {
         return;
+    }
+    
+    // Desktop button
+    if (finanzenOpenBtn) {
+        finanzenOpenBtn.addEventListener('click', openFinanzenModal);
+    }
+    
+    // Mobile button
+    if (mobileFinanzenBtn) {
+        mobileFinanzenBtn.addEventListener('click', openFinanzenModal);
     }
     
     let isDragging = false;

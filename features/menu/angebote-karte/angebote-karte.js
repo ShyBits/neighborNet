@@ -1264,4 +1264,73 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Mobile: Dynamic scroll-based height adjustment
+    function isMobileScreen() {
+        return window.innerWidth <= 768;
+    }
+    
+    function setupMobileScrollAdjustment() {
+        if (!isMobileScreen()) return;
+        
+        const karteContainer = document.querySelector('.karte-container');
+        const angeboteItems = document.querySelector('.angebote-items');
+        
+        if (!karteContainer || !angeboteItems) return;
+        
+        let lastScrollTop = 0;
+        let currentMapHeight = 45; // Start at 45vh (standard: 45% Karte, 50% Anfragen, 5% Banner)
+        const minMapHeight = 25; // Minimum 25vh
+        const maxMapHeight = 70; // Maximum 70vh
+        const scrollSensitivity = 0.3; // How much height changes per scroll
+        
+        // Listen to scroll on the items container
+        angeboteItems.addEventListener('scroll', function() {
+            const scrollTop = this.scrollTop;
+            
+            // Determine scroll direction
+            if (scrollTop > lastScrollTop) {
+                // Scrolling down - decrease map height, increase list height
+                currentMapHeight = Math.max(minMapHeight, currentMapHeight - scrollSensitivity);
+            } else if (scrollTop < lastScrollTop) {
+                // Scrolling up - increase map height, decrease list height
+                currentMapHeight = Math.min(maxMapHeight, currentMapHeight + scrollSensitivity);
+            }
+            
+            // Apply the height change
+            karteContainer.style.height = currentMapHeight + 'vh';
+            karteContainer.style.minHeight = (currentMapHeight * 8) + 'px';
+            
+            // Update map size if Leaflet is loaded (debounced)
+            clearTimeout(window.mapResizeTimeout);
+            window.mapResizeTimeout = setTimeout(() => {
+                if (map && typeof map.invalidateSize === 'function') {
+                    map.invalidateSize();
+                }
+            }, 150);
+            
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        }, { passive: true });
+    }
+    
+    // Initialize on load
+    setTimeout(() => {
+        if (isMobileScreen()) {
+            setupMobileScrollAdjustment();
+        }
+    }, 500); // Wait a bit for DOM to be ready
+    
+    // Re-initialize on window resize
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if (isMobileScreen()) {
+                setupMobileScrollAdjustment();
+            }
+            if (map && typeof map.invalidateSize === 'function') {
+                map.invalidateSize();
+            }
+        }, 250);
+    });
 });

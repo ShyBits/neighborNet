@@ -71,6 +71,70 @@ svg, svg *, img {
     transform: scale(1.05);
 }
 
+/* Mobile Chat Button - Hidden on Desktop */
+.chat-toggle-btn-mobile {
+    display: none;
+}
+
+/* Mobile: Position chat button in bottom right corner */
+@media (max-width: 768px) {
+    /* Hide chat button from top container on mobile */
+    .top-container-left .chat-toggle-btn {
+        display: none !important;
+    }
+    
+    /* Show and position mobile chat button in bottom right corner */
+    .chat-toggle-btn-mobile {
+        display: flex !important;
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        z-index: 998 !important;
+        background: white;
+        border: 2px solid var(--main-color, #84BF5E);
+        color: var(--main-color, #84BF5E);
+        width: 55px;
+        aspect-ratio: 1/1;
+        border-radius: 50%;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .chat-toggle-btn-mobile:hover {
+        transform: scale(1.05);
+    }
+    
+    .chat-toggle-btn-mobile.chat-open {
+        background: var(--main-color, #84BF5E);
+        border-color: var(--main-color, #84BF5E);
+        color: white;
+    }
+    
+    .chat-toggle-btn-mobile.chat-open:hover {
+        background: var(--main-color-dark, #6ba04a);
+        border-color: var(--main-color-dark, #6ba04a);
+    }
+    
+    .chat-toggle-btn-mobile svg {
+        display: block;
+    }
+    
+    .chat-toggle-btn-mobile .chat-icon-filled {
+        display: none;
+    }
+    
+    .chat-toggle-btn-mobile.chat-open .chat-icon-filled {
+        display: block;
+    }
+    
+    .chat-toggle-btn-mobile.chat-open .chat-icon-outline {
+        display: none;
+    }
+}
+
 /* Chat box open - green background with filled icon */
 .chat-toggle-btn.chat-open {
     background: var(--main-color, #84BF5E);

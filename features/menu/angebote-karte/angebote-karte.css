@@ -1391,3 +1391,177 @@
     color: #2c3e50;
     opacity: 0.7;
 }
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .angebote-karte-banner {
+        padding: 8px 16px;
+        background-image: none;
+        background-color: #84BF5E;
+        min-height: auto;
+        height: 5vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .banner-content {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .banner-title {
+        font-size: 18px;
+        margin-bottom: 0;
+    }
+    
+    .banner-text {
+        display: none;
+    }
+    
+    .angebote-karte-menu {
+        flex-direction: column;
+        width: 100%;
+        padding: 0;
+        gap: 0;
+        height: 95vh;
+        display: flex;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .karte-container {
+        position: relative;
+        width: 100%;
+        flex-shrink: 0;
+        order: -1;
+        transition: height 0.3s ease;
+        height: 45vh;
+        min-height: 180px;
+        max-height: 45vh;
+    }
+    
+    .map {
+        height: 100%;
+    }
+    
+    .angebote-list {
+        width: 100%;
+        height: 50vh;
+        overflow-y: auto;
+        order: 1;
+        padding: 16px;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;
+        transition: height 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+    
+    .angebote-list-header {
+        flex-shrink: 0;
+        margin-bottom: 12px;
+    }
+    
+    .angebote-list-title {
+        font-size: 20px;
+        margin: 0;
+    }
+    
+    .angebote-filters-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        flex-shrink: 0;
+        margin-bottom: 16px;
+    }
+    
+    .main-filter-menu {
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+        left: 0;
+        right: auto;
+    }
+    
+    .angebote-items {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+    
+    .angebote-item {
+        padding: 12px;
+        padding-right: 50px;
+    }
+    
+    .angebote-item-content {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .angebote-item-right {
+        width: 100%;
+    }
+    
+    .angebote-item-image-container {
+        height: 120px;
+        max-height: 120px;
+    }
+    
+    .angebote-contact-btn {
+        width: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .angebote-karte-banner {
+        padding: 6px 16px;
+        height: 5vh;
+    }
+    
+    .banner-title {
+        font-size: 16px;
+    }
+    
+    .banner-text {
+        display: none;
+    }
+    
+    .angebote-karte-menu {
+        padding: 0;
+        height: 95vh;
+    }
+    
+    .karte-container {
+        height: 45vh;
+        min-height: 150px;
+    }
+    
+    .angebote-list {
+        padding: 12px;
+        height: 50vh;
+    }
+    
+    .angebote-list-title {
+        font-size: 18px;
+    }
+    
+    .angebote-item {
+        padding: 10px;
+        padding-right: 45px;
+    }
+    
+    .angebote-item-title {
+        font-size: 14px;
+    }
+    
+    .angebote-items {
+        grid-template-columns: 1fr;
+    }
+}

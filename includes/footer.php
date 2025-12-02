@@ -43,6 +43,18 @@
         
         // Load finanzen script globally
         echo '<script src="' . $basePath . 'features/menu/finanzen/finanzen.js"></script>';
+        
+        // Mobile Chat Button (only visible on mobile, fixed bottom right)
+        if (isset($_SESSION['user_id']) && !isset($_SESSION['is_guest'])) {
+            echo '<button class="chat-toggle-btn-mobile" id="chatToggleBtnMobile" aria-label="Chat öffnen">';
+            echo '<svg class="chat-icon-outline" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">';
+            echo '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
+            echo '</svg>';
+            echo '<svg class="chat-icon-filled" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">';
+            echo '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
+            echo '</svg>';
+            echo '</button>';
+        }
     ?>
 </body>
 </html>

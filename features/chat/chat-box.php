@@ -2,6 +2,12 @@
 if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
     return;
 }
+
+// basePath sollte bereits von header.php gesetzt sein
+// Falls nicht gesetzt, verwende leeren String als Fallback
+if (!isset($basePath)) {
+    $basePath = '';
+}
 ?>
 <div id="chatBox" class="chat-box hidden">
     <div class="chat-box-header">
@@ -22,6 +28,22 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
     </div>
     <div class="chat-box-content">
         <div class="chat-contacts-panel">
+            <!-- Mobile: Header with logo and exit button -->
+            <div class="chat-mobile-header">
+                <div class="chat-mobile-header-center">
+                    <div class="chat-mobile-header-logo">
+                        <img src="<?php echo isset($basePath) ? $basePath : ''; ?>assets/images/logo.png" alt="NeighborNet Logo" class="chat-mobile-header-logo-img">
+                    </div>
+                    <div class="chat-mobile-header-title">ChatNet</div>
+                </div>
+                <button class="chat-mobile-exit-btn" id="chatMobileExitBtn" aria-label="Schließen">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
             <div class="chat-contacts-header" id="chatContactsHeader">
                 <button class="chat-contacts-tab active" data-view="contacts" id="chatContactsTab">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -54,6 +76,19 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
             </div>
         </div>
         <div class="chat-messages-panel">
+            <!-- Mobile: Header for chat view -->
+            <div class="chat-messages-mobile-header" id="chatMessagesMobileHeader" style="display: none;">
+                <button class="chat-back-btn" id="chatBackBtn" aria-label="Zurück">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="chat-messages-header-center">
+                    <img class="chat-user-avatar-mobile" id="chatUserAvatarMobile" src="" alt="">
+                    <div class="chat-user-name-mobile" id="chatUserNameMobile"></div>
+                </div>
+            </div>
+            
             <div class="chat-empty-state" id="chatEmptyState">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -61,6 +96,11 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
                 <p>Wähle einen Chat aus, um anzufangen zu chatten</p>
             </div>
             <div class="chat-messages-header" id="chatMessagesHeader" style="display: none;">
+                <button class="chat-back-btn" id="chatBackBtn" aria-label="Zurück">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
                 <div class="chat-messages-user-info">
                     <img class="chat-user-avatar" id="chatUserAvatar" src="" alt="">
                     <div class="chat-user-details">

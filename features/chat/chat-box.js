@@ -237,17 +237,24 @@
     // Initialize buttons
     function initButtons() {
         const toggleBtn = document.getElementById('chatToggleBtn');
+        const toggleBtnMobile = document.getElementById('chatToggleBtnMobile');
         const closeBtn = document.getElementById('chatCloseBtn');
         const minimizeBtn = document.getElementById('chatMinimizeBtn');
         
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function() {
+        function handleToggleChat() {
                 if (chatBox.classList.contains('hidden')) {
                     showChatBox();
                 } else {
                     hideChatBox();
                 }
-            });
+        }
+        
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', handleToggleChat);
+        }
+        
+        if (toggleBtnMobile) {
+            toggleBtnMobile.addEventListener('click', handleToggleChat);
         }
         
         if (closeBtn) {
@@ -278,6 +285,83 @@
         const searchInput = document.getElementById('chatSearchInput');
         if (searchInput) {
             searchInput.addEventListener('input', handleSearch);
+        }
+        
+        // Back button for mobile navigation
+        const backBtn = document.getElementById('chatBackBtn');
+        if (backBtn) {
+            backBtn.addEventListener('click', showMobileContactsView);
+        }
+        
+        // Mobile exit button in chatbox
+        const chatMobileExitBtn = document.getElementById('chatMobileExitBtn');
+        if (chatMobileExitBtn) {
+            chatMobileExitBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                hideChatBox();
+            });
+        }
+    }
+    
+    // Mobile navigation functions
+    function isMobile() {
+        return window.innerWidth <= 768;
+    }
+    
+    function showMobileMessagesView() {
+        if (isMobile()) {
+            chatBox.classList.add('show-messages');
+            
+            // Show messages UI elements
+            const chatEmptyState = document.getElementById('chatEmptyState');
+            const chatMessagesMobileHeader = document.getElementById('chatMessagesMobileHeader');
+            const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+            const chatInputContainer = document.getElementById('chatInputContainer');
+            
+            if (chatEmptyState) chatEmptyState.style.display = 'none';
+            if (chatMessagesMobileHeader) chatMessagesMobileHeader.style.display = 'flex';
+            if (chatMessagesContainer) chatMessagesContainer.style.display = 'flex';
+            if (chatInputContainer) chatInputContainer.style.display = 'block';
+        }
+    }
+    
+    function showMobileContactsView() {
+        if (isMobile()) {
+            chatBox.classList.remove('show-messages');
+            updateMobileHeaderTitle('Chat');
+            
+            // Hide messages UI elements
+            const chatEmptyState = document.getElementById('chatEmptyState');
+            const chatMessagesHeader = document.getElementById('chatMessagesHeader');
+            const chatMessagesMobileHeader = document.getElementById('chatMessagesMobileHeader');
+            const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+            const chatInputContainer = document.getElementById('chatInputContainer');
+            
+            if (chatEmptyState) chatEmptyState.style.display = 'flex';
+            if (chatMessagesHeader) chatMessagesHeader.style.display = 'none';
+            if (chatMessagesMobileHeader) chatMessagesMobileHeader.style.display = 'none';
+            if (chatMessagesContainer) chatMessagesContainer.style.display = 'none';
+            if (chatInputContainer) chatInputContainer.style.display = 'none';
+            
+            // Remove active state from all contacts so other chats can be opened
+            document.querySelectorAll('.chat-contact-item, .chat-new-contact-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Clear file preview if any
+            removeFilePreview();
+            
+            // Don't clear currentChatId and currentContactId here - we want to allow reopening the same chat
+            // The contacts are now active again and can be clicked to open chats
+        }
+    }
+    
+    function updateMobileHeaderTitle(title) {
+        if (!isMobile()) return;
+        const titleEl = document.querySelector('.chat-box-title');
+        if (titleEl) {
+            titleEl.textContent = title;
         }
     }
     
@@ -328,6 +412,14 @@
         // Center chat box on screen
         centerChatBox();
         
+        // On mobile, always show contacts view first
+        if (isMobile()) {
+            showMobileContactsView();
+            // Prevent body scrolling when chat is open
+            document.body.classList.add('chat-box-open');
+            document.documentElement.classList.add('chat-box-open');
+        }
+        
         loadContacts(true);
         
         // Update toggle button state
@@ -353,6 +445,14 @@
         chatBox.classList.add('hidden');
         stopPolling();
         
+        // On mobile, reset to contacts view when closing
+        if (isMobile()) {
+            showMobileContactsView();
+            // Re-enable body scrolling when chat is closed
+            document.body.classList.remove('chat-box-open');
+            document.documentElement.classList.remove('chat-box-open');
+        }
+        
         // Update toggle button state
         updateChatToggleButton();
         
@@ -375,15 +475,26 @@
     // Update chat toggle button appearance based on chat box state
     function updateChatToggleButton() {
         const toggleBtn = document.getElementById('chatToggleBtn');
-        if (!toggleBtn || !chatBox) return;
+        const toggleBtnMobile = document.getElementById('chatToggleBtnMobile');
+        if ((!toggleBtn && !toggleBtnMobile) || !chatBox) return;
         
         // Chat is open if it's not hidden (even if minimized)
         const isChatOpen = !chatBox.classList.contains('hidden');
         
+        if (toggleBtn) {
         if (isChatOpen) {
             toggleBtn.classList.add('chat-open');
         } else {
             toggleBtn.classList.remove('chat-open');
+            }
+        }
+        
+        if (toggleBtnMobile) {
+            if (isChatOpen) {
+                toggleBtnMobile.classList.add('chat-open');
+            } else {
+                toggleBtnMobile.classList.remove('chat-open');
+            }
         }
         
         // Update badge when chat state changes
@@ -1292,15 +1403,32 @@
         
         // Update contact info
         const contact = contactsCache.find(c => c.user_id === numUserId);
+        
+        // Update contact info
         const userNameEl = document.getElementById('chatUserName');
         const avatarImg = document.getElementById('chatUserAvatar');
         const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
         
+        // Mobile header elements
+        const userNameMobileEl = document.getElementById('chatUserNameMobile');
+        const avatarMobileImg = document.getElementById('chatUserAvatarMobile');
+        const mobileHeader = document.getElementById('chatMessagesMobileHeader');
+        
         if (contact) {
-            if (userNameEl) userNameEl.textContent = contact.name || contact.username || 'Unbekannt';
+            const displayName = contact.name || contact.username || 'Unbekannt';
+            const avatarSrc = contact.avatar || basePath + 'assets/images/profile-placeholder.svg';
+            
+            if (userNameEl) userNameEl.textContent = displayName;
             if (avatarImg) {
-                avatarImg.src = contact.avatar || basePath + 'assets/images/profile-placeholder.svg';
-                avatarImg.alt = contact.name || contact.username || '';
+                avatarImg.src = avatarSrc;
+                avatarImg.alt = displayName;
+            }
+            
+            // Update mobile header
+            if (userNameMobileEl) userNameMobileEl.textContent = displayName;
+            if (avatarMobileImg) {
+                avatarMobileImg.src = avatarSrc;
+                avatarMobileImg.alt = displayName;
             }
         } else if (username) {
             if (userNameEl) userNameEl.textContent = username;
@@ -1308,6 +1436,19 @@
                 avatarImg.src = basePath + 'assets/images/profile-placeholder.svg';
                 avatarImg.alt = username;
             }
+            
+            // Update mobile header
+            if (userNameMobileEl) userNameMobileEl.textContent = username;
+            if (avatarMobileImg) {
+                avatarMobileImg.src = basePath + 'assets/images/profile-placeholder.svg';
+                avatarMobileImg.alt = username;
+            }
+        }
+        
+        // On mobile, show messages view and mobile header
+        if (isMobile()) {
+            showMobileMessagesView();
+            if (mobileHeader) mobileHeader.style.display = 'flex';
         }
         
         // Update active contact
@@ -3193,16 +3334,19 @@
     // Update chat toggle button badge
     function updateChatToggleBadge(count) {
         const toggleBtn = document.getElementById('chatToggleBtn');
-        if (!toggleBtn) return;
+        const toggleBtnMobile = document.getElementById('chatToggleBtnMobile');
+        
+        function updateBadge(btn) {
+            if (!btn) return;
         
         // Remove existing badge
-        let badge = toggleBtn.querySelector('.chat-notification-badge');
+            let badge = btn.querySelector('.chat-notification-badge');
         
         if (count > 0) {
             if (!badge) {
                 badge = document.createElement('span');
                 badge.className = 'chat-notification-badge';
-                toggleBtn.appendChild(badge);
+                    btn.appendChild(badge);
             }
             badge.textContent = count > 99 ? '99+' : count.toString();
             badge.style.display = 'flex';
@@ -3211,6 +3355,10 @@
                 badge.style.display = 'none';
             }
         }
+        }
+        
+        updateBadge(toggleBtn);
+        updateBadge(toggleBtnMobile);
     }
     
     // Helper function to parse int safely

@@ -28,10 +28,6 @@
     backdrop-filter: blur(10px);
 }
 
-.user-actions:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
 .user-actions-logged-in {
     padding-left: 0;
     padding-right: 0;
@@ -224,4 +220,15 @@
 .dark-mode-text {
     flex: 1;
     text-align: left;
+}
+
+/* Hide user actions on mobile - they're now in the sidebar */
+@media (max-width: 768px) {
+    .user-actions-wrapper {
+        display: none !important;
+    }
+    
+    .guest-auth-container {
+        display: none !important;
+    }
 }

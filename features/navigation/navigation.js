@@ -1,5 +1,94 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Markiere aktiven Link basierend auf der aktuellen URL
+    // Mobile Menu Toggle
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const navMenu = document.getElementById('navMenu');
+    const navMenuMobile = document.getElementById('navMenuMobile');
+    const navMenuOverlay = document.getElementById('navMenuOverlay');
+    
+    // Use mobile menu if on mobile, otherwise use desktop menu
+    const activeMenu = navMenuMobile || navMenu;
+    
+    function closeMobileMenu() {
+        if (mobileMenuToggle) {
+            mobileMenuToggle.classList.remove('active');
+        }
+        if (navMenuMobile) {
+            navMenuMobile.classList.remove('active');
+        }
+        if (navMenuOverlay) {
+            navMenuOverlay.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+    }
+    
+    function openMobileMenu() {
+        if (mobileMenuToggle) {
+            mobileMenuToggle.classList.add('active');
+        }
+        if (navMenuMobile) {
+            navMenuMobile.classList.add('active');
+        }
+        if (navMenuOverlay) {
+            navMenuOverlay.classList.add('active');
+        }
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function toggleMobileMenu() {
+        if (navMenuMobile && navMenuMobile.classList.contains('active')) {
+            closeMobileMenu();
+        } else {
+            openMobileMenu();
+        }
+    }
+    
+    // Initialize mobile menu functionality
+    if (mobileMenuToggle && navMenuMobile && navMenuOverlay) {
+        // Toggle menu on hamburger button click
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            toggleMobileMenu();
+        });
+        
+        // Close menu when clicking on overlay
+        navMenuOverlay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeMobileMenu();
+        });
+        
+        // Close menu when clicking on a link
+        const navLinks = navMenuMobile.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                closeMobileMenu();
+            });
+        });
+        
+        // Close menu when clicking on profile info link
+        const profileInfoLink = navMenuMobile.querySelector('.nav-menu-mobile-profile-info');
+        if (profileInfoLink) {
+            profileInfoLink.addEventListener('click', function() {
+                closeMobileMenu();
+            });
+        }
+        
+        // Close menu on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && navMenuMobile && navMenuMobile.classList.contains('active')) {
+                closeMobileMenu();
+            }
+        });
+        
+        // Prevent body scroll when menu is open
+        document.addEventListener('touchmove', function(e) {
+            if (navMenuMobile && navMenuMobile.classList.contains('active')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    }
+    
+    // Mark active link based on current URL (for both desktop and mobile menus)
     const currentPage = window.location.pathname.split('/').pop() || 'index.php';
     const navLinks = document.querySelectorAll('.nav-link');
     
@@ -7,11 +96,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const linkHref = link.getAttribute('href');
         const linkPage = linkHref.split('/').pop() || 'index.php';
         
-        // Normalisiere die Dateinamen (entferne .php falls vorhanden für Vergleich)
+        // Normalize filenames (remove .php if present for comparison)
         const currentPageNormalized = currentPage.replace('.php', '');
         const linkPageNormalized = linkPage.replace('.php', '');
         
-        // Wenn die aktuelle Seite mit dem Link übereinstimmt
+        // If current page matches the link
         if (currentPageNormalized === linkPageNormalized || 
             (currentPageNormalized === '' && linkPageNormalized === 'index') ||
             (currentPageNormalized === 'index' && linkPageNormalized === 'index')) {
@@ -25,79 +114,118 @@ document.addEventListener('DOMContentLoaded', function() {
     const openLoginModal = document.getElementById('openLoginModal');
     const openRegisterModal = document.getElementById('openRegisterModal');
     const guestBtn = document.getElementById('guestBtn');
+    const mobileGuestBtn = document.getElementById('mobileGuestBtn');
     const guestLoginBtn = document.getElementById('guestLoginBtn');
     
-    if (guestBtn) {
-        guestBtn.addEventListener('click', function() {
-            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
-            fetch(basePath + 'api/guest-login.php', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+    function handleGuestLogin() {
+        const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+        fetch(basePath + 'api/guest-login.php', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
         });
+    }
+    
+    if (guestBtn) {
+        guestBtn.addEventListener('click', handleGuestLogin);
+    }
+    
+    if (mobileGuestBtn) {
+        mobileGuestBtn.addEventListener('click', handleGuestLogin);
     }
     
     const guestRegisterBtn = document.getElementById('guestRegisterBtn');
+    const mobileGuestRegisterBtn = document.getElementById('mobileGuestRegisterBtn');
+    
+    function handleGuestRegister() {
+        if (typeof window.openAuthModal === 'function') {
+            window.openAuthModal('register');
+        }
+    }
+    
     if (guestRegisterBtn) {
-        guestRegisterBtn.addEventListener('click', function() {
-            if (typeof window.openAuthModal === 'function') {
-                window.openAuthModal('register');
-            }
-        });
+        guestRegisterBtn.addEventListener('click', handleGuestRegister);
+    }
+    
+    if (mobileGuestRegisterBtn) {
+        mobileGuestRegisterBtn.addEventListener('click', handleGuestRegister);
     }
     
     const guestLogoutBtn = document.getElementById('guestLogoutBtn');
-    if (guestLogoutBtn) {
-        guestLogoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Stop heartbeat before logout
-            if (typeof stopHeartbeat === 'function') {
-                stopHeartbeat();
+    const mobileGuestLogoutBtn = document.getElementById('mobileGuestLogoutBtn');
+    
+    function handleGuestLogout(e) {
+        if (e) e.preventDefault();
+        
+        // Stop heartbeat before logout
+        if (typeof stopHeartbeat === 'function') {
+            stopHeartbeat();
+        }
+        
+        const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+        fetch(basePath + 'api/logout.php', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-            
-            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
-            fetch(basePath + 'api/logout.php', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = basePath + 'index.php';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
                 window.location.href = basePath + 'index.php';
-            });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            window.location.href = basePath + 'index.php';
         });
+    }
+    
+    if (guestLogoutBtn) {
+        guestLogoutBtn.addEventListener('click', handleGuestLogout);
+    }
+    
+    if (mobileGuestLogoutBtn) {
+        mobileGuestLogoutBtn.addEventListener('click', handleGuestLogout);
+    }
+    
+    const mobileOpenLoginModal = document.getElementById('mobileOpenLoginModal');
+    
+    function handleLogin() {
+        if (typeof window.openAuthModal === 'function') {
+            window.openAuthModal('login');
+        }
     }
     
     if (openLoginModal) {
-        openLoginModal.addEventListener('click', function() {
-            if (typeof window.openAuthModal === 'function') {
-                window.openAuthModal('login');
-            }
-        });
+        openLoginModal.addEventListener('click', handleLogin);
+    }
+    
+    if (mobileOpenLoginModal) {
+        mobileOpenLoginModal.addEventListener('click', handleLogin);
+    }
+    
+    const mobileOpenRegisterModal = document.getElementById('mobileOpenRegisterModal');
+    
+    function handleRegister() {
+        if (typeof window.openAuthModal === 'function') {
+            window.openAuthModal('register');
+        }
     }
     
     if (openRegisterModal) {
-        openRegisterModal.addEventListener('click', function() {
-            if (typeof window.openAuthModal === 'function') {
-                window.openAuthModal('register');
-            }
-        });
+        openRegisterModal.addEventListener('click', handleRegister);
+    }
+    
+    if (mobileOpenRegisterModal) {
+        mobileOpenRegisterModal.addEventListener('click', handleRegister);
     }
     
     if (profileBtn && profileDropdown) {
@@ -113,37 +241,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Stop heartbeat before logout
-            if (typeof stopHeartbeat === 'function') {
-                stopHeartbeat();
+    const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+    
+    function handleLogout(e) {
+        if (e) e.preventDefault();
+        
+        // Stop heartbeat before logout
+        if (typeof stopHeartbeat === 'function') {
+            stopHeartbeat();
+        }
+        
+        const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+        fetch(basePath + 'api/logout.php', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-            
-            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
-            fetch(basePath + 'api/logout.php', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = basePath + 'index.php';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
                 window.location.href = basePath + 'index.php';
-            });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            window.location.href = basePath + 'index.php';
         });
+    }
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+    
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', handleLogout);
     }
     
     // Dark Mode Toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
+    const mobileDarkModeToggle = document.getElementById('mobileDarkModeToggle');
+    
+    function handleDarkModeToggle(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        const isDarkMode = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', isDarkMode);
+        updateDarkModeUI(isDarkMode);
+        loadDarkModeCSS();
+    }
+    
     if (darkModeToggle) {
         // Initialize dark mode from localStorage
         const isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -153,33 +303,49 @@ document.addEventListener('DOMContentLoaded', function() {
             loadDarkModeCSS();
         }
         
-        darkModeToggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const isDarkMode = document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', isDarkMode);
-            updateDarkModeUI(isDarkMode);
+        darkModeToggle.addEventListener('click', handleDarkModeToggle);
+    }
+    
+    if (mobileDarkModeToggle) {
+        // Initialize dark mode from localStorage
+        const isDarkMode = localStorage.getItem('darkMode') === 'true';
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+            updateDarkModeUI(true);
             loadDarkModeCSS();
-        });
+        }
+        
+        mobileDarkModeToggle.addEventListener('click', handleDarkModeToggle);
     }
     
     function updateDarkModeUI(isDarkMode) {
-        const sunIcon = document.querySelector('.dark-mode-icon-sun');
-        const moonIcon = document.querySelector('.dark-mode-icon-moon');
-        const darkModeText = document.querySelector('.dark-mode-text');
+        const sunIcons = document.querySelectorAll('.dark-mode-icon-sun');
+        const moonIcons = document.querySelectorAll('.dark-mode-icon-moon');
+        const darkModeTexts = document.querySelectorAll('.dark-mode-text');
         
-        if (sunIcon && moonIcon) {
+        sunIcons.forEach(sunIcon => {
             if (isDarkMode) {
                 sunIcon.style.display = 'none';
-                moonIcon.style.display = 'block';
-                if (darkModeText) darkModeText.textContent = 'Light Mode';
             } else {
                 sunIcon.style.display = 'block';
-                moonIcon.style.display = 'none';
-                if (darkModeText) darkModeText.textContent = 'Dark Mode';
             }
-        }
+        });
+        
+        moonIcons.forEach(moonIcon => {
+            if (isDarkMode) {
+                moonIcon.style.display = 'block';
+            } else {
+                moonIcon.style.display = 'none';
+            }
+        });
+        
+        darkModeTexts.forEach(darkModeText => {
+            if (isDarkMode) {
+                darkModeText.textContent = 'Light Mode';
+            } else {
+                darkModeText.textContent = 'Dark Mode';
+            }
+        });
     }
     
     function loadDarkModeCSS() {
