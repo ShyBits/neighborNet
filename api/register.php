@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Lade Session-Konfiguration
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 
@@ -62,23 +61,15 @@ try {
     
     $userId = $conn->lastInsertId();
     
-    // Sicherstellen dass is_guest NICHT gesetzt ist
     unset($_SESSION['is_guest']);
     
-    // Session-Variablen setzen
-    $_SESSION['user_id'] = intval($userId); // Explizit als Integer
+    $_SESSION['user_id'] = intval($userId);
     $_SESSION['user_name'] = $username;
     $_SESSION['user_email'] = $email;
     $_SESSION['user_avatar'] = 'assets/images/profile-placeholder.svg';
     
-    // WICHTIG: Session-ID regenerieren für Sicherheit
-    // Dies verhindert Session-Fixation-Angriffe
-    // Muss NACH dem Setzen der Variablen aufgerufen werden
-    // Die Session-Variablen bleiben erhalten
     session_regenerate_id(true);
     
-    // Sicherstellen dass Session-Variablen nach Regenerierung noch vorhanden sind
-    // session_regenerate_id() sollte die Variablen behalten, aber zur Sicherheit
     $_SESSION['user_id'] = intval($userId);
     $_SESSION['user_name'] = $username;
     $_SESSION['user_email'] = $email;

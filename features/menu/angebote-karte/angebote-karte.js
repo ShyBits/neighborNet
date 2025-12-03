@@ -435,11 +435,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadAngebote() {
         const angeboteItems = document.getElementById('angeboteItems');
         if (!angeboteItems) {
-            return;
+            return Promise.resolve();
         }
         
         const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
-        fetch(basePath + 'api/get-angebote.php')
+        return fetch(basePath + 'api/get-angebote.php')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -448,6 +448,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         angebote.push(data.data[i]);
                     }
                     displayAngebote();
+                    
+                    // Starte Timer zum Entfernen abgelaufener Anfragen (nur beim ersten Laden)
+                    if (!expiredCheckInterval) {
+                        startExpiredCheckInterval();
+                    }
                 } else {
                     console.error('Fehler beim Laden:', data.message);
                 }
@@ -459,6 +464,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Mache loadAngebote global verfügbar, damit es vom Add-Modal aufgerufen werden kann
     window.loadAngebote = loadAngebote;
+    
+    // Timer zum regelmäßigen Entfernen abgelaufener Anfragen (jede Minute)
+    let expiredCheckInterval = null;
+    
+    function startExpiredCheckInterval() {
+        // Entferne abgelaufene Anfragen sofort beim Start
+        removeExpiredAngebote();
+        
+        // Prüfe dann jede Minute
+        if (expiredCheckInterval) {
+            clearInterval(expiredCheckInterval);
+        }
+        expiredCheckInterval = setInterval(function() {
+            removeExpiredAngebote();
+        }, 60000); // 60000ms = 1 Minute
+    }
     
     function getFilteredAngebote() {
         let filtered = [...angebote];
@@ -572,8 +593,42 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const filteredAngebote = getFilteredAngebote();
         
-        for (let i = 0; i < filteredAngebote.length; i++) {
-            const angebot = filteredAngebote[i];
+        // Entferne abgelaufene Anfragen (end_date + end_time erreicht)
+        const now = new Date();
+        const activeAngebote = filteredAngebote.filter(angebot => {
+            // Wenn kein Enddatum vorhanden, behalte die Anfrage
+            if (!angebot.end_date) {
+                return true;
+            }
+            
+            try {
+                // Erstelle Datum/Zeit-Objekt für Enddatum
+                const endDateStr = angebot.end_date;
+                let endDateTime;
+                
+                // Wenn Endzeit vorhanden ist, kombiniere Datum und Zeit
+                if (angebot.end_time) {
+                    const endTimeStr = angebot.end_time.substring(0, 5); // HH:MM
+                    const [hours, minutes] = endTimeStr.split(':').map(Number);
+                    endDateTime = new Date(endDateStr + 'T00:00:00');
+                    endDateTime.setHours(hours, minutes, 0, 0);
+                } else {
+                    // Wenn keine Endzeit vorhanden, verwende Ende des Tages (23:59:59)
+                    endDateTime = new Date(endDateStr + 'T00:00:00');
+                    endDateTime.setHours(23, 59, 59, 999);
+                }
+                
+                // Prüfe ob Enddatum/Endzeit noch nicht erreicht wurde
+                return endDateTime > now;
+            } catch (e) {
+                // Bei Fehler beim Parsen des Datums, behalte die Anfrage (konservativer Ansatz)
+                console.warn('Fehler beim Parsen des Enddatums für Anfrage:', angebot.id, e);
+                return true;
+            }
+        });
+        
+        for (let i = 0; i < activeAngebote.length; i++) {
+            const angebot = activeAngebote[i];
             const isOwner = angebot.is_owner === true;
             
             // Formatiere Datum und Zeit
@@ -633,13 +688,22 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="map-popup-value">${angebot.anfragen_count || 0} von ${angebot.required_persons || 1}</span>
                         </div>
                     </div>
-                    ${isLoggedIn && !isGuest && !isOwner && angebot.user_id ? `
+                    ${isLoggedIn && !isGuest && angebot.user_id ? `
                     <div class="map-popup-actions">
-                        <button class="map-popup-contact-btn" data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}">
+                        <button class="map-popup-contact-btn ${isOwner ? 'map-popup-contact-btn-delete' : ''}" 
+                                ${isOwner ? `data-angebot-id="${angebot.id}" title="Anfrage löschen"` : `data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}"`}>
+                            ${isOwner ? `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18"></path>
+                                <path d="M6 6l12 12"></path>
+                            </svg>
+                            Löschen
+                            ` : `
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                             </svg>
                             Kontaktieren
+                            `}
                         </button>
                     </div>
                     ` : ''}
@@ -647,20 +711,48 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             const marker = L.marker([parseFloat(angebot.lat), parseFloat(angebot.lng)]).addTo(map);
+            marker.angebotId = angebot.id; // Speichere angebotId im Marker für einfaches Löschen
             const popup = L.popup({ maxWidth: 350, className: 'custom-popup' })
                 .setContent(popupContent);
             marker.bindPopup(popup);
             
             // Event-Listener für Kontakt-Button im Popup hinzufügen
             marker.on('popupopen', function() {
-                const contactBtn = document.querySelector('.map-popup-contact-btn[data-user-id="' + angebot.user_id + '"]');
+                // Suche nach dem Button mit der angebotId (funktioniert für beide Varianten)
+                const contactBtn = document.querySelector('.map-popup-contact-btn[data-angebot-id="' + angebot.id + '"]');
                 if (contactBtn) {
-                    contactBtn.addEventListener('click', function(e) {
+                    // Entferne alte Event-Listener falls vorhanden
+                    const newContactBtn = contactBtn.cloneNode(true);
+                    contactBtn.parentNode.replaceChild(newContactBtn, contactBtn);
+                    
+                    newContactBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        const userId = parseInt(this.dataset.userId);
-                        const username = this.dataset.username;
-                        const angebotId = parseInt(this.dataset.angebotId);
-                        contactUser(userId, username, angebot.title, angebotId);
+                        
+                        // Prüfe ob es ein Delete-Button ist (Besitzer)
+                        if (this.classList.contains('map-popup-contact-btn-delete')) {
+                            const angebotId = parseInt(this.dataset.angebotId);
+                            if (confirm('Möchten Sie diese Anfrage wirklich löschen? Sie wird für alle Benutzer nicht mehr sichtbar sein.')) {
+                                // Visuelles Löschen - entferne das Item aus der Anzeige
+                                const angebotDivToRemove = document.querySelector(`.angebote-item[data-angebot-id="${angebotId}"]`);
+                                if (angebotDivToRemove) {
+                                    angebotDivToRemove.remove();
+                                }
+                                // Entferne auch den Marker von der Karte
+                                if (marker && map) {
+                                    map.removeLayer(marker);
+                                    const index = markers.indexOf(marker);
+                                    if (index > -1) {
+                                        markers.splice(index, 1);
+                                    }
+                                }
+                            }
+                        } else {
+                            // Normaler Kontakt-Button
+                            const userId = parseInt(this.dataset.userId);
+                            const username = this.dataset.username;
+                            const angebotId = parseInt(this.dataset.angebotId);
+                            contactUser(userId, username, angebot.title, angebotId);
+                        }
                     });
                 }
             });
@@ -672,17 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
             angebotDiv.classList.add('kategorie-' + angebot.category);
             angebotDiv.dataset.angebotId = angebot.id;
             
-            let anfrageBadge = '';
-            let deleteButton = '';
-            if (angebot.has_user_anfrage && angebot.user_anfrage_id) {
-                anfrageBadge = '<span class="anfrage-badge">Anfrage gesendet</span>';
-                deleteButton = `<button class="anfrage-delete-btn" data-anfrage-id="${angebot.user_anfrage_id}" title="Anfrage löschen">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 6L6 18"></path>
-                        <path d="M6 6l12 12"></path>
-                    </svg>
-                </button>`;
-            }
+            // Kein Badge und kein Delete-Button mehr für gesendete Anfragen
             
             const firstImage = angebot.images && angebot.images.length > 0 && angebot.images[0] !== '' ? angebot.images[0] : null;
             
@@ -733,19 +815,25 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             ${dateStr ? `<span class="angebote-item-date">${dateStr}</span>` : ''}
                         </div>
-                        ${anfrageBadge ? `<div class="angebote-item-anfrage-badge-wrapper">${anfrageBadge}</div>` : ''}
                         <p class="angebote-item-description">${angebot.description}</p>
                         <div class="angebote-item-footer">
                             <span class="angebote-item-author">Von ${angebot.author || 'Unbekannt'}</span>
                             <div class="angebote-item-actions">
-                                ${isLoggedIn && !isGuest && !isOwner && angebot.user_id ? `
-                                <button class="angebote-contact-btn" data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}" title="Kontaktieren">
+                                ${isLoggedIn && !isGuest && angebot.user_id ? `
+                                <button class="angebote-contact-btn ${isOwner ? 'angebote-contact-btn-delete' : ''}" 
+                                        ${isOwner ? `data-angebot-id="${angebot.id}" title="Anfrage löschen"` : `data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}" title="Kontaktieren"`}>
+                                    ${isOwner ? `
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 6L6 18"></path>
+                                        <path d="M6 6l12 12"></path>
+                                    </svg>
+                                    ` : `
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                                     </svg>
+                                    `}
                                 </button>
                                 ` : ''}
-                                ${deleteButton}
                             </div>
                         </div>
                     </div>
@@ -757,7 +845,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             angebotDiv.addEventListener('click', function(e) {
                 // Nur Delete-Buttons und Kontakt-Buttons sollen das Item-Click verhindern
-                if (!e.target.closest('.anfrage-delete-btn') && !e.target.closest('.angebote-image-delete-btn') && !e.target.closest('.angebote-contact-btn')) {
+                if (!e.target.closest('.angebote-image-delete-btn') && !e.target.closest('.angebote-contact-btn')) {
                     if (map) {
                         map.setView([parseFloat(angebot.lat), parseFloat(angebot.lng)], 15);
                         marker.openPopup();
@@ -770,19 +858,30 @@ document.addEventListener('DOMContentLoaded', function() {
             if (contactBtn) {
                 contactBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    const userId = parseInt(this.dataset.userId);
-                    const username = this.dataset.username;
-                    const angebotId = parseInt(this.dataset.angebotId);
-                    contactUser(userId, username, angebot.title, angebotId);
-                });
-            }
-            
-            const deleteBtn = angebotDiv.querySelector('.anfrage-delete-btn');
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const anfrageId = this.dataset.anfrageId;
-                    deleteAnfrage(anfrageId, angebotDiv);
+                    
+                    // Prüfe ob es ein Delete-Button ist (Besitzer)
+                    if (this.classList.contains('angebote-contact-btn-delete')) {
+                        const angebotId = parseInt(this.dataset.angebotId);
+                        if (confirm('Möchten Sie diese Anfrage wirklich löschen? Sie wird für alle Benutzer nicht mehr sichtbar sein.')) {
+                            // Visuelles Löschen - entferne das Item aus der Anzeige
+                            angebotDiv.remove();
+                            // Entferne auch den Marker von der Karte
+                            const markerToRemove = markers.find(m => m.angebotId === angebotId);
+                            if (markerToRemove && map) {
+                                map.removeLayer(markerToRemove);
+                                const index = markers.indexOf(markerToRemove);
+                                if (index > -1) {
+                                    markers.splice(index, 1);
+                                }
+                            }
+                        }
+                    } else {
+                        // Normaler Kontakt-Button
+                        const userId = parseInt(this.dataset.userId);
+                        const username = this.dataset.username;
+                        const angebotId = parseInt(this.dataset.angebotId);
+                        contactUser(userId, username, angebot.title, angebotId);
+                    }
                 });
             }
             
@@ -799,9 +898,55 @@ document.addEventListener('DOMContentLoaded', function() {
             angeboteItems.appendChild(angebotDiv);
         }
         
-        if (filteredAngebote.length === 0) {
+        if (activeAngebote.length === 0) {
             angeboteItems.innerHTML = '<p class="no-angebote">Keine Anfragen entsprechen den gewählten Filtern.</p>';
         }
+    }
+    
+    // Funktion zum Entfernen abgelaufener Anfragen aus der Anzeige
+    function removeExpiredAngebote() {
+        const now = new Date();
+        const angebotDivs = document.querySelectorAll('.angebote-item');
+        
+        angebotDivs.forEach(div => {
+            const angebotId = parseInt(div.dataset.angebotId);
+            const angebot = angebote.find(a => a.id === angebotId);
+            
+            if (angebot && angebot.end_date) {
+                try {
+                    let endDateTime;
+                    
+                    // Wenn Endzeit vorhanden ist, kombiniere Datum und Zeit
+                    if (angebot.end_time) {
+                        const endTimeStr = angebot.end_time.substring(0, 5); // HH:MM
+                        const [hours, minutes] = endTimeStr.split(':').map(Number);
+                        endDateTime = new Date(angebot.end_date + 'T00:00:00');
+                        endDateTime.setHours(hours, minutes, 0, 0);
+                    } else {
+                        // Wenn keine Endzeit vorhanden, verwende Ende des Tages (23:59:59)
+                        endDateTime = new Date(angebot.end_date + 'T00:00:00');
+                        endDateTime.setHours(23, 59, 59, 999);
+                    }
+                    
+                    // Wenn Enddatum/Endzeit erreicht wurde, entferne das Item
+                    if (endDateTime <= now) {
+                        div.remove();
+                        
+                        // Entferne auch den Marker von der Karte
+                        const markerToRemove = markers.find(m => m.angebotId === angebotId);
+                        if (markerToRemove && map) {
+                            map.removeLayer(markerToRemove);
+                            const index = markers.indexOf(markerToRemove);
+                            if (index > -1) {
+                                markers.splice(index, 1);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Fehler beim Prüfen des Enddatums für Anfrage:', angebotId, e);
+                }
+            }
+        });
     }
     
     function applyFilters() {
@@ -1290,69 +1435,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Mobile: Dynamic scroll-based height adjustment
-    function isMobileScreen() {
-        return window.innerWidth <= 768;
-    }
-    
-    function setupMobileScrollAdjustment() {
-        if (!isMobileScreen()) return;
-        
-        const karteContainer = document.querySelector('.karte-container');
-        const angeboteItems = document.querySelector('.angebote-items');
-        
-        if (!karteContainer || !angeboteItems) return;
-        
-        let lastScrollTop = 0;
-        let currentMapHeight = 45; // Start at 45vh (standard: 45% Karte, 50% Anfragen, 5% Banner)
-        const minMapHeight = 25; // Minimum 25vh
-        const maxMapHeight = 70; // Maximum 70vh
-        const scrollSensitivity = 0.3; // How much height changes per scroll
-        
-        // Listen to scroll on the items container
-        angeboteItems.addEventListener('scroll', function() {
-            const scrollTop = this.scrollTop;
-            
-            // Determine scroll direction
-            if (scrollTop > lastScrollTop) {
-                // Scrolling down - decrease map height, increase list height
-                currentMapHeight = Math.max(minMapHeight, currentMapHeight - scrollSensitivity);
-            } else if (scrollTop < lastScrollTop) {
-                // Scrolling up - increase map height, decrease list height
-                currentMapHeight = Math.min(maxMapHeight, currentMapHeight + scrollSensitivity);
-            }
-            
-            // Apply the height change
-            karteContainer.style.height = currentMapHeight + 'vh';
-            karteContainer.style.minHeight = (currentMapHeight * 8) + 'px';
-            
-            // Update map size if Leaflet is loaded (debounced)
-            clearTimeout(window.mapResizeTimeout);
-            window.mapResizeTimeout = setTimeout(() => {
-                if (map && typeof map.invalidateSize === 'function') {
-                    map.invalidateSize();
-                }
-            }, 150);
-            
-            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-        }, { passive: true });
-    }
-    
-    // Initialize on load
-    setTimeout(() => {
-        if (isMobileScreen()) {
-            setupMobileScrollAdjustment();
-        }
-    }, 500); // Wait a bit for DOM to be ready
-    
     // Re-initialize on window resize
     let resizeTimeout;
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(function() {
-            if (isMobileScreen()) {
-                setupMobileScrollAdjustment();
-            }
             if (map && typeof map.invalidateSize === 'function') {
                 map.invalidateSize();
             }

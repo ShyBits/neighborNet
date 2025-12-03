@@ -4,6 +4,10 @@ $isGuest = isset($_SESSION['is_guest']);
 $canView = $isLoggedIn || $isGuest;
 ?>
 
+<div class="mobile-page-header">
+    <h1 class="mobile-page-header-title">Anfragen & Karte</h1>
+</div>
+
 <div class="angebote-karte-banner">
     <div class="banner-content">
         <h2 class="banner-title">Anfragen & Karte</h2>

@@ -1,5 +1,4 @@
 <?php
-// Datenbankverbindung
 
 define('DB_HOST', '192.168.178.200');
 define('DB_PORT', '3306');

@@ -26,6 +26,32 @@ body {
     overflow-x: hidden;
 }
 
+/* Global Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #84BF5E;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6ba04a;
+}
+
+/* Firefox Scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #84BF5E #f1f1f1;
+}
+
 svg, svg *, img {
     font-family: inherit;
 }
@@ -64,7 +90,6 @@ svg, svg *, img {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
 }
 
 .chat-toggle-btn:hover {
@@ -99,7 +124,6 @@ svg, svg *, img {
         cursor: pointer;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
     }
     

@@ -407,13 +407,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const toggleButtons = document.querySelectorAll('.password-toggle-btn');
         
         toggleButtons.forEach(btn => {
-            btn.addEventListener('click', function(e) {
+            // Skip if already initialized
+            if (btn.dataset.initialized === 'true') {
+                return;
+            }
+            btn.dataset.initialized = 'true';
+            
+            // Handle both click and touch events for better mobile support
+            const handleToggle = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
                 const targetId = this.dataset.target;
                 const passwordInput = document.getElementById(targetId);
-                if (!passwordInput) return;
+                if (!passwordInput) {
+                    console.error('Password input not found:', targetId);
+                    return;
+                }
                 
                 const eyeIcon = this.querySelector('.password-toggle-icon-eye');
                 const eyeOffIcon = this.querySelector('.password-toggle-icon-eye-off');
@@ -429,7 +439,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (eyeOffIcon) eyeOffIcon.style.display = 'none';
                     this.setAttribute('aria-label', 'Passwort anzeigen');
                 }
-            });
+            };
+            
+            // Add click event
+            btn.addEventListener('click', handleToggle, { passive: false });
+            // Add touchend event for better mobile support (touchend works better than touchstart)
+            btn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggle.call(this, e);
+            }, { passive: false });
         });
     }
     

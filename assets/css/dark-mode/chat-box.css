@@ -170,7 +170,6 @@ body.dark-mode .chat-message-time {
 body.dark-mode .chat-input-container {
     background: #2d2d2d;
     border-top: 1px solid #404040;
-    transition: background-color 0.2s ease;
 }
 
 body.dark-mode .chat-input-container.drag-over {

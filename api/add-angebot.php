@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Lade Session-Konfiguration
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 
@@ -43,7 +42,6 @@ $lat = $_POST['lat'] ?? '';
 $lng = $_POST['lng'] ?? '';
 $requiredPersons = isset($_POST['required_persons']) ? intval($_POST['required_persons']) : 1;
 
-// Validierung
 if ($requiredPersons < 1 || $requiredPersons > 100) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Die Anzahl der benötigten Personen muss zwischen 1 und 100 liegen']);
@@ -86,7 +84,6 @@ if (!preg_match('/^\d{2}:\d{2}$/', $startTime) || !preg_match('/^\d{2}:\d{2}$/',
 try {
     $conn->beginTransaction();
     
-    // Prüfe ob required_persons Spalte existiert
     $columnCheck = $conn->query("SHOW COLUMNS FROM `angebote` LIKE 'required_persons'");
     $hasRequiredPersons = $columnCheck->rowCount() > 0;
     
@@ -107,7 +104,7 @@ try {
     
     $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    $maxFileSize = 5 * 1024 * 1024; // 5MB
+    $maxFileSize = 5 * 1024 * 1024;
     
     if (isset($_FILES['files']) && !empty($_FILES['files']['name'][0])) {
         $files = $_FILES['files'];

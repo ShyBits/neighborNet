@@ -1,34 +1,23 @@
 <?php
-// Start output buffering immediately to catch any PHP warnings/errors
 ob_start();
 
-// Disable error display to prevent HTML output
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
-// Keep error reporting on to catch warnings, but handle them gracefully
 error_reporting(E_ALL);
 
-// Increase PHP limits for large video uploads (must be set before any output)
-// Note: post_max_size and upload_max_filesize can only be changed in php.ini or .htaccess
-// These ini_set() calls may not work on all servers
 @ini_set('upload_max_filesize', '100M');
 @ini_set('post_max_size', '100M');
 @ini_set('max_execution_time', '300');
 @ini_set('max_input_time', '300');
 @ini_set('memory_limit', '256M');
 
-// Set JSON header immediately to ensure JSON response even on errors
 header('Content-Type: application/json; charset=utf-8');
 
-// Custom error handler to return JSON instead of HTML
-// This must be set BEFORE any code that might trigger warnings
 $errorHandler = function($errno, $errstr, $errfile, $errline) {
-    // Handle warnings about post_max_size being exceeded
     if (strpos($errstr, 'POST Content-Length') !== false || 
         strpos($errstr, 'exceeds the limit') !== false ||
         strpos($errstr, 'post_max_size') !== false ||
         strpos($errstr, 'Request Startup') !== false) {
-        // Clear any output
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
@@ -49,14 +38,11 @@ $errorHandler = function($errno, $errstr, $errfile, $errline) {
         ]);
         exit;
     }
-    // Suppress other warnings to prevent HTML output
-    // Return true to suppress the default PHP error handler
     return true;
 };
 
 set_error_handler($errorHandler, E_WARNING | E_NOTICE | E_USER_WARNING | E_USER_NOTICE);
 
-// Lade Session-Konfiguration
 try {
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
@@ -67,7 +53,6 @@ require_once '../sql/create-tables.php';
     exit;
 }
 
-// Clear any output that might have been generated
 ob_clean();
 
 if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
@@ -78,7 +63,6 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
 
 $userId = intval($_SESSION['user_id']);
 
-// Helper function to convert ini size to bytes
 if (!function_exists('return_bytes')) {
     function return_bytes($val) {
         $val = trim($val);
@@ -93,15 +77,12 @@ if (!function_exists('return_bytes')) {
     }
 }
 
-// Check if POST data was received (might be empty if post_max_size exceeded)
-// This happens when the request body exceeds post_max_size - PHP empties $_POST and $_FILES
 if (empty($_POST) && empty($_FILES) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $postMaxSize = ini_get('post_max_size');
     $uploadMaxSize = ini_get('upload_max_filesize');
     $postMaxSizeBytes = return_bytes($postMaxSize);
     $contentLength = intval($_SERVER['CONTENT_LENGTH'] ?? 0);
     
-    // Convert bytes to human readable
     $contentLengthMB = round($contentLength / 1024 / 1024, 2);
     $postMaxSizeMB = round($postMaxSizeBytes / 1024 / 1024, 2);
     
@@ -117,7 +98,6 @@ if (empty($_POST) && empty($_FILES) && $_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // If content length is reasonable but POST is empty, there might be another issue
     http_response_code(400);
     echo json_encode([
         'success' => false, 
@@ -139,7 +119,6 @@ if (!empty($_POST['uploaded_videos'])) {
     try {
         $uploadedVideos = json_decode($_POST['uploaded_videos'], true);
         if (is_array($uploadedVideos)) {
-            // Add already uploaded videos to uploadedFiles
             foreach ($uploadedVideos as $video) {
                 if (isset($video['file_path']) && isset($video['file_type'])) {
                     $uploadedFiles[] = [
@@ -161,10 +140,8 @@ if ($chatId <= 0) {
     exit;
 }
 
-// Check if we have files
 $hasFiles = false;
 if (isset($_FILES['files']) && is_array($_FILES['files']['error'])) {
-    // Multiple files - check if at least one file uploaded successfully
     foreach ($_FILES['files']['error'] as $key => $error) {
         if ($error === UPLOAD_ERR_OK) {
             $hasFiles = true;
@@ -172,26 +149,21 @@ if (isset($_FILES['files']) && is_array($_FILES['files']['error'])) {
         }
     }
 } elseif (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-    // Single file (backward compatibility)
     $hasFiles = true;
 }
 
-// Handle file uploads
 $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
-$maxSize = 100 * 1024 * 1024; // 100MB - increased for large videos
-$MAX_FILES_PER_MESSAGE = 10; // Maximum 10 files per message
+$maxSize = 100 * 1024 * 1024;
+$MAX_FILES_PER_MESSAGE = 10;
 
-// Create upload directory
 $uploadDir = '../uploads/chat/' . $chatId . '/';
 if (!file_exists($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
 
-// Handle multiple files
-$imageMaxSize = 10 * 1024 * 1024; // 10MB for images
-$videoMaxSize = 100 * 1024 * 1024; // 100MB for videos - increased for large video files
+$imageMaxSize = 10 * 1024 * 1024;
+$videoMaxSize = 100 * 1024 * 1024;
 
-// Count files being uploaded in this request
 $fileCount = 0;
 if (isset($_FILES['files']) && is_array($_FILES['files']['error'])) {
     $fileCount = count(array_filter($_FILES['files']['error'], function($error) {
@@ -201,10 +173,8 @@ if (isset($_FILES['files']) && is_array($_FILES['files']['error'])) {
     $fileCount = 1;
 }
 
-// Count already uploaded files from chunked upload (before processing new files)
 $chunkedUploadCount = count($uploadedFiles);
 
-// Also check if incoming message contains JSON with base64 images (for backward compatibility)
 $incomingImageCount = 0;
 $incomingMessageData = null;
 if (!empty($_POST['message']) && ($_POST['message'][0] === '[' || $_POST['message'][0] === '{')) {
@@ -216,7 +186,6 @@ if (!empty($_POST['message']) && ($_POST['message'][0] === '[' || $_POST['messag
             $incomingImageCount = count($incomingMessageData);
         }
     } catch (Exception $e) {
-        // Not JSON, ignore
     }
 }
 
@@ -227,7 +196,6 @@ if ($totalFileCount > $MAX_FILES_PER_MESSAGE) {
     exit;
 }
 
-// Also validate incoming JSON images count
 if ($incomingImageCount > $MAX_FILES_PER_MESSAGE) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => "Maximal {$MAX_FILES_PER_MESSAGE} Dateien pro Nachricht erlaubt."]);
@@ -236,9 +204,7 @@ if ($incomingImageCount > $MAX_FILES_PER_MESSAGE) {
 
 if (isset($_FILES['files']) && is_array($_FILES['files']['error'])) {
     foreach ($_FILES['files']['error'] as $key => $error) {
-        // Skip files with upload errors (except OK)
         if ($error !== UPLOAD_ERR_OK) {
-            // Log error for debugging but continue with other files
             if ($error !== UPLOAD_ERR_NO_FILE) {
                 error_log("File upload error for key $key: $error");
             }
@@ -252,7 +218,6 @@ if (isset($_FILES['files']) && is_array($_FILES['files']['error'])) {
             'size' => $_FILES['files']['size'][$key]
         ];
         
-        // Check file type - allow any video/* type for flexibility
         $isAllowedType = in_array($file['type'], $allowedTypes) || strpos($file['type'], 'video/') === 0;
         if (!$isAllowedType) {
             error_log("Invalid file type: " . $file['type']);
@@ -262,26 +227,21 @@ if (isset($_FILES['files']) && is_array($_FILES['files']['error'])) {
         $isImage = strpos($file['type'], 'image/') === 0;
         $maxFileSize = $isImage ? $imageMaxSize : $videoMaxSize;
     
-    // Check file size
         if ($file['size'] > $maxFileSize) {
             error_log("File too large: " . $file['name'] . " (" . $file['size'] . " bytes, max: $maxFileSize)");
-            continue; // Skip oversized files
+            continue;
         }
         
-        // Validate file exists and is readable
         if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
             error_log("Invalid uploaded file: " . $file['name']);
             continue;
         }
         
-        // Check if we've reached the maximum file limit
-        // Note: $uploadedFiles may already contain chunked uploads, so we need to check total
         $currentTotal = count($uploadedFiles) + $incomingImageCount + (isset($_FILES['files']) ? count(array_filter($_FILES['files']['error'], function($e) { return $e === UPLOAD_ERR_OK; })) : 0);
         if ($currentTotal >= $MAX_FILES_PER_MESSAGE) {
-            break; // Stop processing more files
+            break;
         }
         
-        // Store all files (images and videos) as file paths
         $fileExtension = pathinfo($file['name'], PATHINFO_EXTENSION);
         $fileName = uniqid('chat_', true) . '_' . time() . '_' . $key . '.' . $fileExtension;
         $filePath = $uploadDir . $fileName;

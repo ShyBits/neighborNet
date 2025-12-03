@@ -161,7 +161,8 @@
 
 @media (max-width: 768px) {
     .banner-logo-background {
-        display: none;
+        width: 300px;
+        opacity: 0.15;
     }
     .home-banner {
         min-height: 70vh;
@@ -211,10 +212,6 @@
     
     .banner-stat-label {
         font-size: 12px;
-    }
-    
-    .banner-logo-background {
-        display: none;
     }
 }
 

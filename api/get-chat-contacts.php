@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Lade Session-Konfiguration
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 
@@ -16,15 +15,12 @@ $limit = intval($_GET['limit'] ?? 50);
 $offset = intval($_GET['offset'] ?? 0);
 $conn = getDBConnection();
 
-// Stelle sicher, dass die message-Spalte existiert (Migration)
-// create-tables.php wurde bereits geladen, prüfe ob Spalte fehlt
 if (function_exists('columnExists')) {
     if (!columnExists($conn, 'messages', 'message')) {
         try {
             $driver = $conn->getAttribute(PDO::ATTR_DRIVER_NAME);
             $messageType = ($driver === 'mysql') ? 'LONGTEXT' : 'TEXT';
             $conn->exec("ALTER TABLE `messages` ADD COLUMN `message` {$messageType} NULL");
-            // Wenn Tabelle leer ist, ändere zu NOT NULL
             $stmt = $conn->query("SELECT COUNT(*) as count FROM `messages`");
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($result && $result['count'] == 0) {
@@ -35,17 +31,14 @@ if (function_exists('columnExists')) {
                 }
             }
         } catch(PDOException $e) {
-            // Ignoriere Fehler wenn Spalte bereits existiert
             error_log("Fehler beim Hinzufügen der message-Spalte: " . $e->getMessage());
         }
     }
 }
 
 try {
-    // Get database driver for SQL compatibility
     $driver = $conn->getAttribute(PDO::ATTR_DRIVER_NAME);
     
-    // Determine time-based status calculation based on database
     if ($driver === 'mysql') {
         $activityStatusSQL = "
             CASE 
@@ -65,7 +58,6 @@ try {
             END as status
         ";
     } else {
-        // SQLite or other
         $activityStatusSQL = "
             CASE 
                 WHEN ua.last_activity IS NULL THEN 'offline'
@@ -76,9 +68,6 @@ try {
         ";
     }
     
-    // Get all chats for this user with contact information
-    // Include ALL chats, even if they have no messages yet
-    // Simplified query for better SQL compatibility
     if ($driver === 'mysql') {
         $concatFunction = "CONCAT";
         $trimFunction = "TRIM";
@@ -86,21 +75,16 @@ try {
         $concatFunction = "CONCAT";
         $trimFunction = "TRIM";
     } else {
-        // SQLite
         $concatFunction = "(";
         $trimFunction = "TRIM";
     }
     
-    // Build name concatenation based on driver
-    // Since we're always getting cp2 (the other participant), we only need u2
     if ($driver === 'sqlite') {
         $nameSQL = "TRIM(COALESCE(u2.first_name, '') || ' ' || COALESCE(u2.last_name, '')) as name";
     } else {
         $nameSQL = "TRIM(CONCAT(COALESCE(u2.first_name, ''), ' ', COALESCE(u2.last_name, ''))) as name";
     }
     
-    // Simplified query: Get the other participant for each chat
-    // This ensures we get exactly one row per chat
     $stmt = $conn->prepare("
         SELECT 
             c.id as chat_id,
@@ -131,17 +115,13 @@ try {
         LEFT JOIN chat_metadata cm ON c.id = cm.chat_id
         LEFT JOIN messages m ON (cm.last_message_id = m.id AND m.chat_id = c.id)
         LEFT JOIN user_activity ua ON ua.user_id = cp2.user_id
-        -- Include ALL chats, even if they have no messages yet
-        -- This allows opening empty chats that were just created
         ORDER BY COALESCE(cm.last_message_at, c.created_at) DESC
         LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
     ");
     
-    // Execute with parameters: userId (for unread_count CASE), userId (for cp1), userId (for cp2)
     $stmt->execute([$userId, $userId, $userId]);
     $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get total count - include ALL chats, even empty ones
     $countStmt = $conn->prepare("
         SELECT COUNT(DISTINCT c.id) as total
         FROM chats c
@@ -151,14 +131,12 @@ try {
     $countStmt->execute([$userId, $userId]);
     $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
     
-    // Format contacts
     $contacts = [];
     foreach ($chats as $chat) {
         $chatId = intval($chat['chat_id']);
         $lastMessageSenderId = isset($chat['last_message_sender_id']) ? intval($chat['last_message_sender_id']) : null;
         $isLastMessageFromCurrentUser = $lastMessageSenderId === $userId;
         
-        // Get participant IDs for encryption
         $participantIds = [];
         $participantsStmt = $conn->prepare("
             SELECT user_id FROM chat_participants 
@@ -171,7 +149,6 @@ try {
             $participantIds = array_map('intval', $participants);
         }
         
-        // Determine status: online (last 2 min), away (2-15 min), offline (>15 min or no activity)
         $status = $chat['status'] ?? 'offline';
         if (!in_array($status, ['online', 'away', 'offline'])) {
             $status = 'offline';

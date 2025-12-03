@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Lade Session-Konfiguration
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 
@@ -13,7 +12,7 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
 
 $userId = intval($_SESSION['user_id']);
 $chatId = intval($_GET['chat_id'] ?? 0);
-$lastId = intval($_GET['last_id'] ?? 0); // Optional: only get messages after this ID
+$lastId = intval($_GET['last_id'] ?? 0);
 
 if ($chatId <= 0) {
     http_response_code(400);
@@ -24,7 +23,6 @@ if ($chatId <= 0) {
 $conn = getDBConnection();
 
 try {
-    // Verify user is participant in this chat
     $stmt = $conn->prepare("
         SELECT chat_id FROM chat_participants 
         WHERE chat_id = ? AND user_id = ?
@@ -37,7 +35,6 @@ try {
         exit;
     }
     
-    // Get chat participants for encryption key derivation
     $participantIds = [];
     $participantsStmt = $conn->prepare("
         SELECT user_id FROM chat_participants 
@@ -50,8 +47,6 @@ try {
         $participantIds = array_map('intval', $participants);
     }
     
-    // Get messages for this chat
-    // If lastId is provided, only get new messages after that ID
     if ($lastId > 0) {
         $stmt = $conn->prepare("
             SELECT 
@@ -73,7 +68,6 @@ try {
         ");
         $stmt->execute([$chatId, $lastId]);
     } else {
-        // Get all messages (first load)
         $stmt = $conn->prepare("
             SELECT 
                 m.id,
@@ -97,25 +91,20 @@ try {
     
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Format messages
     $formattedMessages = [];
     foreach ($messages as $msg) {
-        // Ensure created_at is properly formatted (MySQL TIMESTAMP format)
         $createdAt = $msg['created_at'];
         if ($createdAt) {
-            // Convert to ISO 8601 format if needed
             $timestamp = strtotime($createdAt);
             if ($timestamp) {
                 $createdAt = date('Y-m-d H:i:s', $timestamp);
             }
         }
         
-        // Parse anfrage data if message type is anfrage_request
         $anfrageData = null;
         if ($msg['file_type'] === 'anfrage_request' && $msg['file_path']) {
             $anfrageData = json_decode($msg['file_path'], true);
             if ($anfrageData && isset($anfrageData['anfrage_id'])) {
-                // Get anfrage status
                 $anfrageStmt = $conn->prepare("SELECT id, status FROM anfragen WHERE id = ?");
                 $anfrageStmt->execute([$anfrageData['anfrage_id']]);
                 $anfrage = $anfrageStmt->fetch(PDO::FETCH_ASSOC);

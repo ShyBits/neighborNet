@@ -12,13 +12,13 @@
             <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="modalLoginEmail">E-Mail oder Benutzername</label>
-                    <input type="text" id="modalLoginEmail" name="email" required>
+                    <input type="text" id="modalLoginEmail" name="email" maxlength="255" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="modalLoginPassword">Passwort</label>
                     <div class="password-input-wrapper">
-                        <input type="password" id="modalLoginPassword" name="password" required>
+                        <input type="password" id="modalLoginPassword" name="password" maxlength="255" required>
                         <button type="button" class="password-toggle-btn" data-target="modalLoginPassword" aria-label="Passwort anzeigen">
                             <svg class="password-toggle-icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -50,51 +50,51 @@
             <form id="registerForm" class="auth-form">
                 <div class="form-group">
                     <label for="modalRegisterUsername">Benutzername</label>
-                    <input type="text" id="modalRegisterUsername" name="username" required>
+                    <input type="text" id="modalRegisterUsername" name="username" maxlength="50" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="modalRegisterEmail">E-Mail</label>
-                    <input type="email" id="modalRegisterEmail" name="email" required>
+                    <input type="email" id="modalRegisterEmail" name="email" maxlength="255" required>
                 </div>
                 
                 <div class="form-group-row">
                     <div class="form-group form-group-half">
                         <label for="modalRegisterFirstName">Vorname</label>
-                        <input type="text" id="modalRegisterFirstName" name="first_name">
+                        <input type="text" id="modalRegisterFirstName" name="first_name" maxlength="50">
                     </div>
                     <div class="form-group form-group-half">
                         <label for="modalRegisterLastName">Nachname</label>
-                        <input type="text" id="modalRegisterLastName" name="last_name">
+                        <input type="text" id="modalRegisterLastName" name="last_name" maxlength="50">
                     </div>
                 </div>
                 
                 <div class="form-group-row">
                     <div class="form-group form-group-street">
                         <label for="modalRegisterStreet">Straße</label>
-                        <input type="text" id="modalRegisterStreet" name="street">
+                        <input type="text" id="modalRegisterStreet" name="street" maxlength="100">
                     </div>
                     <div class="form-group form-group-house">
                         <label for="modalRegisterHouseNumber">Hausnummer</label>
-                        <input type="text" id="modalRegisterHouseNumber" name="house_number">
+                        <input type="text" id="modalRegisterHouseNumber" name="house_number" maxlength="10">
                     </div>
                 </div>
                 
                 <div class="form-group-row">
                     <div class="form-group form-group-postcode">
                         <label for="modalRegisterPostcode">Postleitzahl</label>
-                        <input type="text" id="modalRegisterPostcode" name="postcode">
+                        <input type="text" id="modalRegisterPostcode" name="postcode" maxlength="10">
                     </div>
                     <div class="form-group form-group-city">
                         <label for="modalRegisterCity">Stadt</label>
-                        <input type="text" id="modalRegisterCity" name="city">
+                        <input type="text" id="modalRegisterCity" name="city" maxlength="100">
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="modalRegisterPassword">Passwort</label>
                     <div class="password-input-wrapper">
-                        <input type="password" id="modalRegisterPassword" name="password" required>
+                        <input type="password" id="modalRegisterPassword" name="password" maxlength="255" required>
                         <button type="button" class="password-toggle-btn" data-target="modalRegisterPassword" aria-label="Passwort anzeigen">
                             <svg class="password-toggle-icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -111,7 +111,7 @@
                 <div class="form-group">
                     <label for="modalRegisterPasswordConfirm">Passwort bestätigen</label>
                     <div class="password-input-wrapper">
-                        <input type="password" id="modalRegisterPasswordConfirm" name="password_confirm" required>
+                        <input type="password" id="modalRegisterPasswordConfirm" name="password_confirm" maxlength="255" required>
                         <button type="button" class="password-toggle-btn" data-target="modalRegisterPasswordConfirm" aria-label="Passwort anzeigen">
                             <svg class="password-toggle-icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -148,7 +148,7 @@
             <form id="resetEmailForm" class="auth-form">
                 <div class="form-group">
                     <label for="resetEmail">E-Mail</label>
-                    <input type="email" id="resetEmail" name="email" required>
+                    <input type="email" id="resetEmail" name="email" maxlength="255" required>
                 </div>
                 
                 <div class="form-error" id="resetEmailError"></div>
@@ -167,7 +167,7 @@
                 <div class="form-group">
                     <label for="newPassword">Neues Passwort</label>
                     <div class="password-input-wrapper">
-                        <input type="password" id="newPassword" name="password" required>
+                        <input type="password" id="newPassword" name="password" maxlength="255" required>
                         <button type="button" class="password-toggle-btn" data-target="newPassword" aria-label="Passwort anzeigen">
                             <svg class="password-toggle-icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -184,7 +184,7 @@
                 <div class="form-group">
                     <label for="newPasswordConfirm">Passwort bestätigen</label>
                     <div class="password-input-wrapper">
-                        <input type="password" id="newPasswordConfirm" name="password_confirm" required>
+                        <input type="password" id="newPasswordConfirm" name="password_confirm" maxlength="255" required>
                         <button type="button" class="password-toggle-btn" data-target="newPasswordConfirm" aria-label="Passwort anzeigen">
                             <svg class="password-toggle-icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>

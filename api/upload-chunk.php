@@ -1,13 +1,10 @@
 <?php
-// Start output buffering immediately
 ob_start();
 
-// Disable error display
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
 
-// Try to increase PHP limits (may not work for upload_max_filesize and post_max_size)
 @ini_set('upload_max_filesize', '10M');
 @ini_set('post_max_size', '10M');
 @ini_set('max_execution_time', '300');
@@ -16,7 +13,6 @@ error_reporting(E_ALL);
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Lade Session-Konfiguration
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 
@@ -42,7 +38,6 @@ if ($chatId <= 0 || empty($fileName)) {
     exit;
 }
 
-// Validate file type
 $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
 $isVideo = strpos($fileType, 'video/') === 0;
 $isImage = strpos($fileType, 'image/') === 0;
@@ -54,7 +49,6 @@ if (!$isImage && !$isVideo) {
     exit;
 }
 
-// Check if we have a chunk
 if (!isset($_FILES['chunk'])) {
     ob_clean();
     http_response_code(400);
@@ -85,7 +79,6 @@ if ($_FILES['chunk']['error'] !== UPLOAD_ERR_OK) {
     $errorCode = $_FILES['chunk']['error'];
     $errorMsg = $errorMessages[$errorCode] ?? 'Unbekannter Upload-Fehler: ' . $errorCode;
     
-    // Add helpful information for UPLOAD_ERR_INI_SIZE
     if ($errorCode === UPLOAD_ERR_INI_SIZE) {
         $chunkSize = $_FILES['chunk']['size'] ?? 0;
         $chunkSizeMB = round($chunkSize / 1024 / 1024, 2);
@@ -111,13 +104,11 @@ if ($_FILES['chunk']['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-// Create temporary directory for chunks
 $tempDir = '../uploads/chat/temp/' . $chatId . '/' . md5($fileName . $fileSize) . '/';
 if (!file_exists($tempDir)) {
     mkdir($tempDir, 0755, true);
 }
 
-// Save chunk
 $chunkFile = $tempDir . 'chunk_' . $chunkIndex;
 if (!move_uploaded_file($_FILES['chunk']['tmp_name'], $chunkFile)) {
     ob_clean();
@@ -126,13 +117,10 @@ if (!move_uploaded_file($_FILES['chunk']['tmp_name'], $chunkFile)) {
     exit;
 }
 
-// Check if this is the last chunk
 if ($chunkIndex === $totalChunks - 1) {
-    // All chunks received, combine them
     $finalFile = '';
     $finalPath = '';
     
-    // For both videos and images, save to final location
     if ($isVideo || $isImage) {
         $uploadDir = '../uploads/chat/' . $chatId . '/';
         if (!file_exists($uploadDir)) {
@@ -143,7 +131,6 @@ if ($chunkIndex === $totalChunks - 1) {
         $finalFileName = uniqid('chat_', true) . '_' . time() . '.' . $fileExtension;
         $finalPath = $uploadDir . $finalFileName;
         
-        // Combine all chunks
         $finalHandle = fopen($finalPath, 'wb');
         if (!$finalHandle) {
             ob_clean();
@@ -169,16 +156,14 @@ if ($chunkIndex === $totalChunks - 1) {
                     fwrite($finalHandle, fread($chunkHandle, 8192));
                 }
                 fclose($chunkHandle);
-                @unlink($chunkPath); // Delete chunk after combining
+                @unlink($chunkPath);
             }
         }
         
         fclose($finalHandle);
         
-        // Clean up temp directory
         @rmdir($tempDir);
         
-        // Verify file size
         if (filesize($finalPath) !== $fileSize) {
             @unlink($finalPath);
             ob_clean();
@@ -199,14 +184,12 @@ if ($chunkIndex === $totalChunks - 1) {
             'file_name' => $fileName
         ]);
     } else {
-        // Invalid file type
         ob_clean();
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Ungültiger Dateityp für Chunked Upload']);
         exit;
     }
 } else {
-    // More chunks to come
     ob_clean();
     echo json_encode([
         'success' => true,

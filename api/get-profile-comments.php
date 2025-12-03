@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Lade Session-Konfiguration
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 

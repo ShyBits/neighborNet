@@ -38,7 +38,6 @@
     margin: 0 auto;
     padding: 40px 20px;
     display: flex;
-    gap: 30px;
     align-items: flex-start;
 }
 
@@ -89,7 +88,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.2s ease;
     height: 40px;
     box-sizing: border-box;
 }
@@ -124,6 +122,12 @@
     z-index: 1000;
     padding: 12px;
     box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .main-filter-menu {
+        z-index: 1000;
+    }
 }
 
 .main-filter-menu.active {
@@ -193,7 +197,6 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
     text-align: center;
 }
 
@@ -219,7 +222,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 16px;
+    padding: 10px;
     border: none;
     border-radius: 50px;
     cursor: pointer;
@@ -433,7 +436,7 @@
     font-weight: 500;
     text-transform: uppercase;
     white-space: nowrap;
-    z-index: 6;
+    z-index: 5;
 }
 
 .kategorie-gartenarbeit .angebote-item-category-badge {
@@ -479,7 +482,7 @@
     align-items: center;
     justify-content: center;
     font-size: 14px;
-    z-index: 10;
+    z-index: 20;
 }
 
 .angebote-image-delete-btn:hover {
@@ -536,7 +539,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 5;
+    z-index: 2;
 }
 
 .angebote-contact-btn:hover {
@@ -546,6 +549,14 @@
 .angebote-contact-btn svg {
     width: 20px;
     height: 20px;
+}
+
+.angebote-contact-btn-delete {
+    background-color: #dc3545;
+}
+
+.angebote-contact-btn-delete:hover {
+    background-color: #c82333;
 }
 
 .angebote-item-btn {
@@ -598,6 +609,8 @@
     padding: 60px 40px;
     text-align: center;
     min-height: 400px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .login-prompt-title {
@@ -605,6 +618,8 @@
     color: #2c3e50;
     margin-bottom: 16px;
     font-weight: 600;
+    text-align: center;
+    width: 100%;
 }
 
 .login-prompt-text {
@@ -612,6 +627,9 @@
     color: #5a6c7d;
     margin-bottom: 32px;
     line-height: 1.6;
+    text-align: center;
+    width: 100%;
+    max-width: 600px;
 }
 
 .login-prompt-btn {
@@ -738,6 +756,14 @@
     height: 16px;
 }
 
+.map-popup-contact-btn-delete {
+    background-color: #dc3545;
+}
+
+.map-popup-contact-btn-delete:hover {
+    background-color: #c82333;
+}
+
 .map .leaflet-container {
     cursor: pointer;
 }
@@ -799,11 +825,46 @@
     position: absolute;
     bottom: 20px;
     left: 20px;
-    z-index: 1000;
+    z-index: 900;
     display: flex;
     flex-direction: column;
     gap: 12px;
     pointer-events: none;
+}
+
+/* Ensure Leaflet controls are below mobile navigation */
+@media (max-width: 768px) {
+    .map-controls {
+        z-index: 900;
+    }
+    
+    /* Leaflet default controls z-index override */
+    .leaflet-top,
+    .leaflet-bottom,
+    .leaflet-left,
+    .leaflet-right {
+        z-index: 900 !important;
+    }
+    
+    .leaflet-control {
+        z-index: 900 !important;
+    }
+    
+    .leaflet-control-zoom {
+        z-index: 900 !important;
+    }
+    
+    .leaflet-control-attribution {
+        z-index: 900 !important;
+    }
+    
+    .leaflet-popup {
+        z-index: 950 !important;
+    }
+    
+    .leaflet-popup-pane {
+        z-index: 950 !important;
+    }
 }
 
 .map-controls > * {
@@ -900,7 +961,6 @@
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    transition: all 0.2s ease;
     white-space: nowrap;
     width: 100%;
     min-width: 0;
@@ -927,7 +987,6 @@
 }
 
 .filter-dropdown-btn svg {
-    transition: transform 0.2s ease;
     flex-shrink: 0;
 }
 
@@ -975,7 +1034,6 @@
     text-align: left;
     cursor: pointer;
     border-radius: 6px;
-    transition: background-color 0.2s ease;
     white-space: nowrap;
 }
 
@@ -1002,7 +1060,7 @@
     top: 0;
     left: 0;
     cursor: pointer;
-    z-index: 2;
+    z-index: 10;
     pointer-events: auto;
 }
 
@@ -1035,7 +1093,6 @@
     width: 100%;
     height: 36px;
     box-sizing: border-box;
-    transition: all 0.2s ease;
     font-weight: 500;
     cursor: pointer;
     text-align: center;
@@ -1071,7 +1128,7 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
     pointer-events: none;
-    z-index: 1;
+    z-index: 5;
 }
 
 .filter-time-input:not(:placeholder-shown) + .filter-time-label,
@@ -1108,7 +1165,6 @@
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    transition: all 0.2s ease;
     white-space: nowrap;
     width: 100%;
     height: 36px;
@@ -1183,7 +1239,6 @@
     height: 36px;
     width: 100%;
     box-sizing: border-box;
-    transition: all 0.2s ease;
 }
 
 .filter-input-wrapper:hover {
@@ -1213,7 +1268,6 @@
     flex: 1;
     height: 100%;
     box-sizing: border-box;
-    transition: all 0.2s ease;
     font-weight: 500;
     min-width: 0;
 }
@@ -1253,7 +1307,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
     line-height: 1;
     width: 28px;
     height: 32px;
@@ -1283,7 +1336,6 @@
     padding: 8px 10px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    transition: all 0.2s ease;
     height: 36px;
     box-sizing: border-box;
     min-width: 80px;
@@ -1307,7 +1359,6 @@
     font-size: 13px;
     width: 100%;
     text-align: center;
-    transition: all 0.2s ease;
     font-weight: 500;
     position: absolute;
     left: 0;
@@ -1335,7 +1386,7 @@
     flex-shrink: 0;
     margin-left: auto;
     padding-left: 4px;
-    z-index: 1;
+    z-index: 5;
     position: relative;
 }
 
@@ -1356,7 +1407,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
     height: 36px;
     box-sizing: border-box;
     min-width: 120px;
@@ -1389,7 +1439,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
     line-height: 1;
     width: 20px;
     height: 20px;
@@ -1403,17 +1452,38 @@
 }
 
 
+/* Mobile Header */
+.mobile-page-header {
+    display: none;
+}
+
 @media (max-width: 768px) {
-    .angebote-karte-banner {
-        padding: 8px 16px;
-        background-image: none;
-        background-color: #84BF5E;
-        min-height: auto;
-        height: 5vh;
+    .mobile-page-header {
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
+        height: 7vh;
+        min-height: 50px;
+        background-color: #84BF5E;
+        position: relative;
+        width: 100%;
+        padding: 0 60px 0 60px;
+        box-sizing: border-box;
+    }
+    
+    .mobile-page-header-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-align: center;
+        flex: 1;
+        margin: 0;
+    }
+    
+    .angebote-karte-banner {
+        display: none;
     }
     
     .banner-content {
@@ -1446,10 +1516,10 @@
         width: 100%;
         flex-shrink: 0;
         order: -1;
-        transition: height 0.3s ease;
         height: 45vh;
         min-height: 180px;
         max-height: 45vh;
+        z-index: 1;
     }
     
     .map {
@@ -1464,7 +1534,6 @@
         padding: 16px;
         min-height: 0;
         -webkit-overflow-scrolling: touch;
-        transition: height 0.3s ease;
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
@@ -1481,18 +1550,101 @@
     }
     
     .angebote-filters-actions {
-        flex-direction: column;
-        align-items: stretch;
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        flex-direction: column-reverse;
+        align-items: flex-start;
         gap: 12px;
         flex-shrink: 0;
-        margin-bottom: 16px;
+        margin-bottom: 0;
+        z-index: 8;
+    }
+    
+    .angebote-filter-btn,
+    .angebote-add-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-size: 0;
+        flex-shrink: 0;
+    }
+    
+    .angebote-filter-btn svg,
+    .angebote-add-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .angebote-filter-btn span,
+    .angebote-add-btn span {
+        display: none;
+    }
+    
+    .angebote-add-btn {
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .angebote-add-btn svg {
+        display: block;
+        margin: 0 auto;
+    }
+    
+    .main-filter-dropdown {
+        position: relative;
+    }
+    
+    .main-filter-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-size: 0;
+        gap: 0;
+        position: relative;
+        text-indent: -9999px;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    
+    .main-filter-btn svg {
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        text-indent: 0;
     }
     
     .main-filter-menu {
-        width: calc(100vw - 32px);
-        max-width: calc(100vw - 32px);
-        left: 0;
+        position: fixed;
+        bottom: 10%;
+        left: 76px;
+        width: calc(100vw - 96px);
+        max-width: 400px;
+        max-height: 60vh;
+        top: auto;
         right: auto;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+        transform-origin: bottom left;
+        border-radius: 12px;
+        z-index: 8;
+    }
+    
+    .main-filter-menu.active {
+        display: flex;
     }
     
     .angebote-items {
@@ -1527,6 +1679,38 @@
     
     .angebote-contact-btn {
         width: 40px;
+    }
+    
+    .login-prompt {
+        padding: 40px 20px;
+        min-height: auto;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .login-prompt-title {
+        font-size: 24px;
+        text-align: center;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .login-prompt-text {
+        font-size: 16px;
+        text-align: center;
+        width: 100%;
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .login-prompt-btn {
+        margin-left: auto;
+        margin-right: auto;
     }
 }
 

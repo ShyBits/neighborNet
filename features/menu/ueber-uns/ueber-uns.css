@@ -211,16 +211,38 @@
     }
 }
 
+/* Mobile Header */
+.mobile-page-header {
+    display: none;
+}
+
 @media (max-width: 768px) {
-    .qa-banner {
-        padding: 12px 16px;
-        background-image: none;
-        background-color: #84BF5E;
-        min-height: auto;
-        height: auto;
+    .mobile-page-header {
         display: flex;
         align-items: center;
         justify-content: center;
+        height: 7vh;
+        min-height: 50px;
+        background-color: #84BF5E;
+        position: relative;
+        width: 100%;
+        padding: 0 60px;
+        box-sizing: border-box;
+    }
+    
+    .mobile-page-header-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-align: center;
+        flex: 1;
+        margin: 0;
+    }
+    
+    .qa-banner {
+        display: none;
     }
     
     .qa-banner-content {
@@ -249,26 +271,52 @@
     
     .qa-item {
         margin-bottom: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
     
     .qa-question-box {
-        margin-bottom: 16px;
+        margin-bottom: 0;
         gap: 12px;
+        justify-content: flex-start;
+        align-items: flex-start;
     }
     
     .qa-answer-box {
         gap: 12px;
+        justify-content: flex-end;
+        align-items: flex-end;
     }
     
     .qa-label {
         font-size: 36px;
         width: 40px;
+        flex-shrink: 0;
     }
     
-    .qa-question-content,
+    .qa-label-question {
+        order: 0;
+    }
+    
+    .qa-label-answer {
+        order: 0;
+    }
+    
+    .qa-question-content {
+        padding: 16px;
+        border-radius: 12px;
+        order: 1;
+        flex: 1;
+        max-width: calc(100% - 52px);
+    }
+    
     .qa-answer-content {
         padding: 16px;
         border-radius: 12px;
+        order: 1;
+        flex: 1;
+        max-width: calc(100% - 52px);
     }
     
     .qa-question-title {
@@ -323,26 +371,38 @@
     
     .qa-item {
         margin-bottom: 24px;
+        gap: 12px;
     }
     
     .qa-question-box {
-        margin-bottom: 12px;
+        margin-bottom: 0;
         gap: 10px;
+        justify-content: flex-start;
+        align-items: flex-start;
     }
     
     .qa-answer-box {
         gap: 10px;
+        justify-content: flex-end;
+        align-items: flex-end;
     }
     
     .qa-label {
         font-size: 32px;
         width: 36px;
+        flex-shrink: 0;
     }
     
-    .qa-question-content,
+    .qa-question-content {
+        padding: 14px;
+        border-radius: 10px;
+        max-width: calc(100% - 46px);
+    }
+    
     .qa-answer-content {
         padding: 14px;
         border-radius: 10px;
+        max-width: calc(100% - 46px);
     }
     
     .qa-question-title {

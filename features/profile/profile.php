@@ -1,6 +1,5 @@
 <?php
 if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
-    // Berechne basePath für Redirect
     $redirectPath = 'index.php';
     if (isset($_SERVER['PHP_SELF'])) {
         $scriptPath = $_SERVER['PHP_SELF'];
@@ -8,7 +7,6 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
         $rootFiles = ['index.php', 'qa.php', 'angebote-karte.php', 'flohmarkt.php', 'profile.php', 'finanzen.php'];
         
         if (!in_array($scriptFile, $rootFiles)) {
-            // Wir sind in einem Unterverzeichnis, füge basePath hinzu
             $scriptDir = dirname($scriptPath);
             $dirPath = trim($scriptDir, '/');
             if (!empty($dirPath)) {

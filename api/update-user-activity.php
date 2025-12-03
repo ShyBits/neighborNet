@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Lade Session-Konfiguration
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 
@@ -15,9 +14,6 @@ $userId = intval($_SESSION['user_id']);
 $conn = getDBConnection();
 
 try {
-    // Update or insert user activity
-    // Use INSERT ... ON DUPLICATE KEY UPDATE for MySQL
-    // For other databases, use UPSERT syntax
     $driver = $conn->getAttribute(PDO::ATTR_DRIVER_NAME);
     
     if ($driver === 'mysql') {
@@ -34,7 +30,6 @@ try {
             DO UPDATE SET last_activity = NOW()
         ");
     } else {
-        // SQLite or other - use REPLACE or DELETE + INSERT
         $stmt = $conn->prepare("
             INSERT OR REPLACE INTO user_activity (user_id, last_activity) 
             VALUES (?, datetime('now'))

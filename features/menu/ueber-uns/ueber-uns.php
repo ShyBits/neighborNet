@@ -1,6 +1,10 @@
 <?php
 ?>
 
+<div class="mobile-page-header">
+    <h1 class="mobile-page-header-title">Q&A</h1>
+</div>
+
 <div class="qa-banner">
     <div class="qa-banner-content">
         <h1 class="qa-banner-title">Q&A</h1>

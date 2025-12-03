@@ -42,7 +42,6 @@
     align-items: center;
     justify-content: center;
     border-radius: 50px;
-    transition: all 0.3s;
 }
 
 .auth-modal-close:hover {
@@ -116,28 +115,46 @@
 }
 
 .password-input-wrapper input {
-    padding-right: 45px;
+    padding-right: 50px;
     width: 100%;
     flex: 1;
     box-sizing: border-box;
+    position: relative;
+    z-index: 1;
 }
 
 .password-toggle-btn {
     position: absolute;
     right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px;
+    padding: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #5a6c7d;
-    z-index: 1;
+    z-index: 100;
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    pointer-events: auto;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .password-toggle-btn:hover {
     color: #84BF5E;
+}
+
+.password-toggle-btn:active {
+    color: #84BF5E;
+    transform: translateY(-50%) scale(0.95);
 }
 
 .password-toggle-btn:focus {
@@ -163,7 +180,6 @@
     border-bottom: 2px solid #e0e0e0;
     font-size: 16px;
     background: transparent;
-    transition: border-color 0.3s;
     width: 100%;
     box-sizing: border-box;
 }
@@ -193,7 +209,6 @@
     border-radius: 50px;
     font-size: 16px;
     cursor: pointer;
-    transition: background 0.3s;
     margin-top: 10px;
 }
 
@@ -227,5 +242,108 @@
 
 .forgot-password-link:hover {
     text-decoration: underline;
+}
+
+/* Mobile optimizations - kompakter in der Höhe, Style beibehalten */
+@media (max-width: 768px) {
+    .auth-modal {
+        padding: 24px;
+        border-radius: 50px;
+        max-height: 85vh;
+        width: 90%;
+    }
+    
+    .auth-modal-close {
+        top: 16px;
+        right: 16px;
+        width: 36px;
+        height: 36px;
+        font-size: 28px;
+    }
+    
+    .auth-modal-title {
+        font-size: 24px;
+        margin-bottom: 6px;
+    }
+    
+    .auth-modal-subtitle {
+        margin-bottom: 20px;
+        font-size: 13px;
+    }
+    
+    .auth-form {
+        gap: 16px;
+    }
+    
+    .form-group {
+        gap: 6px;
+    }
+    
+    .form-group input {
+        padding: 10px 0;
+        font-size: 16px;
+    }
+    
+    .form-group label {
+        font-size: 13px;
+    }
+    
+    .auth-submit-btn {
+        padding: 12px 20px;
+        font-size: 15px;
+        margin-top: 8px;
+    }
+    
+    .auth-switch-text {
+        margin-top: 16px;
+        font-size: 13px;
+    }
+    
+    .form-group-row {
+        gap: 12px;
+    }
+    
+    .forgot-password-link {
+        font-size: 11px;
+        margin-top: 3px;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    .auth-modal {
+        padding: 30px;
+        border-radius: 50px;
+        max-height: 88vh;
+    }
+    
+    .auth-modal-title {
+        font-size: 22px;
+        margin-bottom: 4px;
+    }
+    
+    .auth-modal-subtitle {
+        margin-bottom: 16px;
+        font-size: 12px;
+    }
+    
+    .auth-form {
+        gap: 14px;
+    }
+    
+    .form-group input {
+        padding: 9px 0;
+    }
+    
+    .auth-submit-btn {
+        padding: 11px 18px;
+        font-size: 14px;
+        margin-top: 6px;
+    }
+    
+    .auth-switch-text {
+        margin-top: 14px;
+        font-size: 12px;
+    }
 }
 
