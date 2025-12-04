@@ -18,10 +18,21 @@
     if (!isset($basePath)) {
         $basePath = '';
     }
+    
+    // Include premium modal if user is logged in
+    if (isset($_SESSION['user_id']) && !isset($_SESSION['is_guest'])) {
+        include __DIR__ . '/../features/premium/premium-modal.php';
+    }
     ?>
     <script src="<?php echo $basePath; ?>assets/js/main.js"></script>
     <script src="<?php echo $basePath; ?>features/auth/auth-modal.js"></script>
     <script src="<?php echo $basePath; ?>features/navigation/navigation.js"></script>
+    <?php
+    // Load premium modal JS if user is logged in
+    if (isset($_SESSION['user_id']) && !isset($_SESSION['is_guest'])) {
+        echo '<script src="' . $basePath . 'features/premium/premium-modal.js"></script>';
+    }
+    ?>
     <?php
     // Lade JavaScript nur wenn benötigt
     if (isset($pageTitle)) {

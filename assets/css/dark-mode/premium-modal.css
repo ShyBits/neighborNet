@@ -1,0 +1,58 @@
+/* Dark Mode - Premium Modal */
+
+body.dark-mode .premium-crown-btn {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    border-color: #FFD700;
+}
+
+body.dark-mode .premium-crown-btn:hover {
+    background: linear-gradient(135deg, #FFA500 0%, #FFD700 100%);
+}
+
+body.dark-mode .premium-modal-container {
+    background: #2d2d2d;
+    border: 1px solid #404040;
+}
+
+body.dark-mode .premium-modal-close {
+    background: #3a3a3a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .premium-modal-close:hover {
+    background: #4a4a4a;
+}
+
+body.dark-mode .premium-modal-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .premium-modal-subtitle {
+    color: #b0b0b0;
+}
+
+body.dark-mode .premium-feature-item {
+    background: #3a3a3a;
+    border: 1px solid #404040;
+}
+
+body.dark-mode .premium-feature-item:hover {
+    background: #4a4a4a;
+}
+
+body.dark-mode .premium-feature-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .premium-feature-description {
+    color: #b0b0b0;
+}
+
+body.dark-mode .premium-modal-footer {
+    border-top-color: #404040;
+}
+
+body.dark-mode .premium-modal-note {
+    color: #888;
+}
+

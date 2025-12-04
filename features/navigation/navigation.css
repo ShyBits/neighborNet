@@ -251,8 +251,9 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 20px 24px;
+        padding: 16px 20px;
         border-bottom: 1px solid #e0e0e0;
+        flex-shrink: 0;
     }
     
     .nav-menu-mobile-logo {
@@ -260,53 +261,55 @@
     }
     
     .nav-menu-mobile-logo-img {
-        height: 36px;
+        height: 32px;
         width: auto;
         object-fit: contain;
     }
     
     .nav-menu-mobile-title {
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: #2c3e50;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
     
     /* Navigation Links Container */
     .nav-menu-mobile-links {
         flex: 1;
         overflow-y: auto;
-        padding: 8px 0;
+        overflow-x: hidden;
+        padding: 4px 0;
+        min-height: 0;
     }
     
     /* Navigation Section */
     .nav-menu-mobile-section {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 8px 0;
+        gap: 2px;
+        padding: 4px 0;
     }
     
     /* Divider between sections */
     .nav-menu-mobile-divider {
         height: 1px;
         background-color: #e0e0e0;
-        margin: 12px 24px;
+        margin: 8px 20px;
     }
     
     /* Style links in mobile menu */
     .nav-menu-mobile .nav-link {
         width: 100%;
-        padding: 14px 24px;
+        padding: 12px 20px;
         border-radius: 0;
         height: auto;
-        font-size: 16px;
+        font-size: 15px;
         justify-content: flex-start;
         margin: 0;
         box-sizing: border-box;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 14px;
         color: #2c3e50;
         text-decoration: none;
         position: relative;
@@ -354,19 +357,64 @@
         color: #84BF5E;
     }
     
-    /* Finanzen Button in Mobile Menu */
-    .nav-menu-mobile-finanz-btn {
+    /* Premium Button in Mobile Menu */
+    .nav-menu-mobile-premium-btn {
         width: 100%;
-        padding: 14px 24px;
+        padding: 12px 20px;
         border-radius: 0;
         height: auto;
-        font-size: 16px;
+        font-size: 15px;
         justify-content: flex-start;
         margin: 0;
         box-sizing: border-box;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 14px;
+        color: #ffffff;
+        text-decoration: none;
+        background: #FFA500;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        position: relative;
+        font-weight: 600;
+    }
+    
+    .nav-menu-mobile-premium-btn svg {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        color: #ffffff;
+        filter: drop-shadow(0 1px 2px rgba(255, 215, 0, 0.3));
+    }
+    
+    .nav-menu-mobile-premium-btn span {
+        flex: 1;
+        font-weight: 600;
+    }
+    
+    .nav-menu-mobile-premium-btn:hover {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.15) 100%);
+        color: #FFA500;
+    }
+    
+    .nav-menu-mobile-premium-btn:hover svg {
+        color: #FFA500;
+    }
+    
+    /* Finanzen Button in Mobile Menu */
+    .nav-menu-mobile-finanz-btn {
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 0;
+        height: auto;
+        font-size: 15px;
+        justify-content: flex-start;
+        margin: 0;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 14px;
         color: #2c3e50;
         text-decoration: none;
         background: none;
@@ -396,23 +444,24 @@
     /* User Actions Container in Mobile Menu */
     .nav-menu-mobile-user-actions {
         border-top: 2px solid #e0e0e0;
-        padding-top: 20px;
-        padding-bottom: 20px;
+        padding-top: 16px;
+        padding-bottom: 16px;
         margin-top: auto;
         background-color: #ffffff;
+        flex-shrink: 0;
     }
     
     /* Profile Section in Mobile Menu */
     .nav-menu-mobile-profile {
-        padding: 0 24px 20px;
+        padding: 0 20px 16px;
     }
     
     .nav-menu-mobile-profile-top {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding-bottom: 16px;
-        margin-bottom: 12px;
+        padding-bottom: 12px;
+        margin-bottom: 8px;
     }
     
     .nav-menu-mobile-profile-info {
@@ -432,21 +481,21 @@
     }
     
     .nav-menu-mobile-profile-img {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         object-fit: cover;
     }
     
     .nav-menu-mobile-profile-name {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 600;
         color: #2c3e50;
     }
     
     .nav-menu-mobile-logout-btn {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         background: #ffffff;
         border: none;
@@ -466,22 +515,22 @@
     .nav-menu-mobile-profile-menu {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
     }
     
     .nav-menu-mobile-profile-item {
         display: flex;
         align-items: center;
-        gap: 16px;
-        padding: 12px 16px;
+        gap: 14px;
+        padding: 10px 12px;
         background: none;
         border: none;
         color: #2c3e50;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 500;
         text-align: left;
         cursor: pointer;
-        border-radius: 8px;
+        border-radius: 6px;
     }
     
     .nav-menu-mobile-profile-item:hover {
@@ -497,34 +546,34 @@
     
     /* Guest Section in Mobile Menu */
     .nav-menu-mobile-guest {
-        padding: 0 24px 20px;
+        padding: 0 20px 16px;
     }
     
     .nav-menu-mobile-guest-icon {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         background-color: #e0e0e0;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #5a6c7d;
-        margin-bottom: 16px;
+        margin-bottom: 10px;
     }
     
     .nav-menu-mobile-guest-actions {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
     }
     
     .nav-menu-mobile-guest-btn {
-        padding: 12px 16px;
+        padding: 10px 14px;
         background-color: #f8f9fa;
         border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        border-radius: 6px;
         color: #2c3e50;
-        font-size: 15px;
+        font-size: 13px;
         cursor: pointer;
     }
     
@@ -534,18 +583,18 @@
     
     /* Auth Section in Mobile Menu */
     .nav-menu-mobile-auth {
-        padding: 0 24px 20px;
+        padding: 0 20px 16px;
     }
     
     .nav-menu-mobile-auth-btn {
         width: 100%;
-        padding: 12px 16px;
-        margin-bottom: 12px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
         background-color: #e0e0e0;
         border: none;
-        border-radius: 8px;
+        border-radius: 6px;
         color: #2c3e50;
-        font-size: 15px;
+        font-size: 13px;
         font-weight: 500;
         cursor: pointer;
         display: flex;
@@ -561,16 +610,16 @@
     .nav-menu-mobile-auth-actions {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
     }
     
     .nav-menu-mobile-auth-btn-secondary {
-        padding: 12px 16px;
+        padding: 10px 14px;
         background-color: transparent;
         border: 1px solid #84BF5E;
-        border-radius: 8px;
+        border-radius: 6px;
         color: #84BF5E;
-        font-size: 15px;
+        font-size: 13px;
         cursor: pointer;
     }
     
@@ -579,12 +628,12 @@
     }
     
     .nav-menu-mobile-auth-btn-primary {
-        padding: 12px 16px;
+        padding: 10px 14px;
         background-color: #84BF5E;
         border: none;
-        border-radius: 8px;
+        border-radius: 6px;
         color: white;
-        font-size: 15px;
+        font-size: 13px;
         font-weight: 500;
         cursor: pointer;
     }

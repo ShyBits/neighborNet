@@ -368,6 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Load navigation dark mode CSS (always loaded)
             loadDarkModeCSSFile(darkModePath + 'navigation.css', 'navigation');
             loadDarkModeCSSFile(darkModePath + 'user-actions.css', 'user-actions');
+            loadDarkModeCSSFile(darkModePath + 'premium-modal.css', 'premium-modal');
             loadDarkModeCSSFile(darkModePath + 'auth-modal.css', 'auth-modal');
             
             // Load page-specific dark mode CSS based on pageTitle or path

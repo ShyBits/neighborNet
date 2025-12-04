@@ -90,6 +90,20 @@ if (!isset($basePath)) {
         <div class="nav-menu-mobile-divider"></div>
         
         <div class="nav-menu-mobile-section">
+            <?php
+            // Prüfe ob Benutzer Premium hat (später aus Datenbank)
+            $hasPremium = false; // TODO: Aus Datenbank laden
+            if ($isLoggedIn && !$hasPremium):
+            ?>
+            <button class="nav-menu-mobile-premium-btn" id="mobilePremiumCrownBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z"></path>
+                    <path d="M12 18v4"></path>
+                    <path d="M8 22h8"></path>
+                </svg>
+                <span>Premium</span>
+            </button>
+            <?php endif; ?>
             <button class="nav-menu-mobile-finanz-btn" id="mobileFinanzenBtn">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>

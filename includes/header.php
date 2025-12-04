@@ -114,6 +114,11 @@ if (isset($_SERVER['PHP_SELF'])) {
         
         // Load finanzen styles globally
         echo '<link rel="stylesheet" href="' . $basePath . 'features/menu/finanzen/finanzen.css">';
+        
+        // Load premium modal styles if user is logged in
+        if (isset($_SESSION['user_id']) && !isset($_SESSION['is_guest'])) {
+            echo '<link rel="stylesheet" href="' . $basePath . 'features/premium/premium-modal.css">';
+        }
     }
     ?>
     

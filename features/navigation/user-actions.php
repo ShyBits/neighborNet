@@ -35,6 +35,21 @@ $userAvatar = $_SESSION['user_avatar'] ?? $basePath . 'assets/images/profile-pla
 
 <div class="user-actions-wrapper">
         <?php if ($isLoggedIn): ?>
+            <!-- Premium Crown Icon (nur wenn kein Premium) -->
+            <?php
+            // Prüfe ob Benutzer Premium hat (später aus Datenbank)
+            $hasPremium = false; // TODO: Aus Datenbank laden
+            if (!$hasPremium):
+            ?>
+            <button class="premium-crown-btn" id="premiumCrownBtn" title="Premium-Mitgliedschaft">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z"></path>
+                    <path d="M12 18v4"></path>
+                    <path d="M8 22h8"></path>
+                </svg>
+            </button>
+            <?php endif; ?>
+            
             <div class="user-actions user-actions-logged-in">
             <div class="profile-dropdown-container">
                 <button class="profile-btn" id="profileBtn">

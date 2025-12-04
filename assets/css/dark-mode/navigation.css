@@ -1,4 +1,22 @@
 /* Dark Mode - Navigation */
+
+body.dark-mode .nav-menu-mobile-premium-btn {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.15) 100%);
+    color: #FFD700;
+}
+
+body.dark-mode .nav-menu-mobile-premium-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.2) 100%);
+    color: #FFA500;
+}
+
+body.dark-mode .nav-menu-mobile-premium-btn svg {
+    color: #FFD700;
+}
+
+body.dark-mode .nav-menu-mobile-premium-btn:hover svg {
+    color: #FFA500;
+}
 /* Only changes white backgrounds, keeps main green color (#84BF5E) */
 
 body.dark-mode .navigation-bar {
