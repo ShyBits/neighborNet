@@ -108,10 +108,9 @@ if (empty($_POST) && empty($_FILES) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $chatId = intval($_POST['chat_id'] ?? 0);
 $textMessage = trim($_POST['message'] ?? ''); // Text message from user
-$encryptedParam = isset($_POST['encrypted']) && $_POST['encrypted'] == '1';
 $uploadedFiles = [];
 $dbMessage = $textMessage; // Will be updated with file data if needed
-$finalEncrypted = $encryptedParam;
+$finalEncrypted = 0; // Encryption removed
 
 // Check for already uploaded videos (from chunked upload)
 $uploadedVideos = [];
@@ -313,7 +312,7 @@ $hasTextInMessage = false;
 
 // First, handle incoming base64 images from frontend (backward compatibility) and convert them to files
 if ($incomingMessageIsJson && $incomingMessageData) {
-    // Don't encrypt JSON data
+    // Encryption removed
     $finalEncrypted = 0;
     
     $incomingFiles = [];
@@ -534,11 +533,8 @@ try {
     
     if (!$isMerged) {
         // Insert new message (either no merge needed or merge would exceed limit)
-        $finalEncrypted = $encryptedParam;
-        // Don't encrypt if message is JSON
-        if ($incomingMessageIsJson) {
-            $finalEncrypted = 0;
-        }
+        // Encryption removed - always set to 0
+        $finalEncrypted = 0;
         
     $stmt = $conn->prepare("
         INSERT INTO messages (chat_id, sender_id, receiver_id, message, encrypted, file_path, file_type, created_at) 
@@ -639,7 +635,7 @@ try {
             'id' => intval($sentMessage['id']),
             'sender_id' => intval($sentMessage['sender_id']),
             'message' => $sentMessage['message'],
-            'encrypted' => (bool)($sentMessage['encrypted'] ?? false),
+            'encrypted' => false, // Encryption removed
             'file_path' => $sentMessage['file_path'] ?? null,
             'file_type' => $sentMessage['file_type'] ?? null,
             'created_at' => $createdAt, // Real timestamp from database

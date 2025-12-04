@@ -15,7 +15,9 @@ body.dark-mode .chat-contacts-header {
     background: #2d2d2d;
     border-bottom: 1px solid #404040;
 }
-
+body.dark-mode .chat-new-contact-status, body.dark-mode .chat-contact-preview {
+    color: #ffffff;
+}
 body.dark-mode .chat-contacts-tab {
     color: #b0b0b0;
 }
@@ -33,6 +35,28 @@ body.dark-mode .chat-contacts-tab.active {
 body.dark-mode .chat-search-container {
     background: #2d2d2d;
     border-bottom: 1px solid #404040;
+}
+
+body.dark-mode .chat-favorites-filter-btn {
+    background: #1f1f1f;
+    border: 1px solid #404040;
+    color: #b0b0b0;
+}
+
+body.dark-mode .chat-favorites-filter-btn:hover {
+    background: #3a3a3a;
+    border-color: #84BF5E;
+}
+
+body.dark-mode .chat-favorites-filter-btn.active {
+    background: #84BF5E;
+    border-color: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .chat-favorites-filter-btn.active svg {
+    fill: white;
+    stroke: white;
 }
 
 body.dark-mode .chat-search-input {
@@ -59,7 +83,54 @@ body.dark-mode .chat-contact-item:hover {
 body.dark-mode .chat-new-contact-item.active,
 body.dark-mode .chat-contact-item.active {
     background: rgba(132, 191, 94, 0.15);
+}
+
+body.dark-mode .chat-new-contact-item.active {
     border-left: 3px solid #84BF5E;
+}
+
+body.dark-mode .chat-contact-item.active {
+    border-left: 3px solid #84BF5E;
+}
+
+body.dark-mode .chat-contact-item.favorite.active {
+    border-left: 3px solid #ffc107;
+}
+
+body.dark-mode .chat-new-contact-add-btn {
+    background: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .chat-new-contact-add-btn:hover {
+    background: #6fa84d;
+}
+
+body.dark-mode .chat-new-contact-add-btn:active {
+    background: #5a8a3d;
+}
+
+body.dark-mode .chat-context-menu {
+    background: #2d2d2d;
+    border-color: #404040;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .chat-context-menu-item {
+    color: #e0e0e0;
+}
+
+body.dark-mode .chat-context-menu-item:hover {
+    background: #3a3a3a;
+}
+
+body.dark-mode .chat-context-menu-item-danger {
+    color: #ef5350;
+}
+
+body.dark-mode .chat-context-menu-item-danger:hover {
+    background: rgba(239, 83, 80, 0.1);
+    color: #ef5350;
 }
 
 body.dark-mode .chat-new-contacts-list {
@@ -71,18 +142,80 @@ body.dark-mode .chat-new-contact-name {
     color: #e0e0e0;
 }
 
-body.dark-mode .chat-contact-time,
-body.dark-mode .chat-contact-preview {
+body.dark-mode .chat-contact-message,
+body.dark-mode .chat-new-contact-message {
     color: #b0b0b0;
 }
 
-body.dark-mode .chat-loading,
-body.dark-mode .chat-empty-contacts {
+body.dark-mode .chat-contact-time {
     color: #b0b0b0;
+}
+
+body.dark-mode .chat-contact-item.favorite {
+    background: #3a3a3a; /* Darker yellow for dark mode */
+}
+
+body.dark-mode .chat-contact-item.favorite.active {
+    background: #4a4a4a; /* Even darker for active favorite */
+}
+
+body.dark-mode .chat-favorites-filter-btn.active {
+    background: #84BF5E;
+    border-color: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .chat-favorites-filter-btn.active svg {
+    fill: white;
+    stroke: white;
+}
+
+body.dark-mode .chat-new-contact-add-btn {
+    background: #84BF5E;
+    color: white;
+}
+
+body.dark-mode .chat-new-contact-add-btn:hover {
+    background: #6fa84d;
+}
+
+body.dark-mode .chat-new-contact-add-btn:active {
+    background: #5a8a3d;
+}
+
+body.dark-mode .chat-context-menu {
+    background: #1f1f1f;
+    border: 1px solid #404040;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .chat-context-menu-item {
+    color: #e0e0e0;
+}
+
+body.dark-mode .chat-context-menu-item:hover {
+    background: #3a3a3a;
+}
+
+body.dark-mode .chat-context-menu-item.delete:hover {
+    background: #d32f2f;
+    color: white;
+}
+
+body.dark-mode .chat-contact-item.active {
+    border-left: 3px solid #84BF5E;
+}
+
+body.dark-mode .chat-contact-item.favorite.active {
+    border-left: 3px solid #ffc107;
+}
+
+body.dark-mode .chat-new-contact-item.active {
+    border-left: 3px solid #84BF5E;
 }
 
 body.dark-mode .chat-messages-panel {
-    background: #2d2d2d;
+    background: #1f1f1f;
 }
 
 body.dark-mode .chat-messages-header {
@@ -172,11 +305,6 @@ body.dark-mode .chat-input-container {
     border-top: 1px solid #404040;
 }
 
-body.dark-mode .chat-input-container.drag-over {
-    background-color: rgba(132, 191, 94, 0.15);
-    border-top-color: #84BF5E;
-}
-
 body.dark-mode .chat-input {
     background: #1f1f1f;
     border: 1px solid #404040;
@@ -192,16 +320,40 @@ body.dark-mode .chat-send-btn {
     color: white;
 }
 
-body.dark-mode .chat-send-btn:hover {
-    background: #6ba04a;
+body.dark-mode .chat-send-btn:hover:not(:disabled) {
+    background: #6fa84d;
+}
+
+body.dark-mode .chat-send-btn:disabled {
+    background: #3a3a3a;
+    color: #666;
+}
+
+body.dark-mode .chat-file-btn {
+    border: 1px solid #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .chat-file-btn:hover {
+    background: #84BF5E;
+    border-color: #84BF5E;
+    color: white;
 }
 
 body.dark-mode .chat-empty-state {
     color: #b0b0b0;
 }
 
-body.dark-mode .chat-messages-empty-title {
+body.dark-mode .chat-empty-state-icon {
+    opacity: 0.3;
+}
+
+body.dark-mode .chat-empty-state h3 {
     color: #e0e0e0;
+}
+
+body.dark-mode .chat-empty-state p {
+    color: #b0b0b0;
 }
 
 body.dark-mode .chat-messages-empty-text {
@@ -225,42 +377,89 @@ body.dark-mode .chat-media-lightbox-close {
 
 body.dark-mode .lightbox-close:hover,
 body.dark-mode .chat-media-lightbox-close:hover {
-    background: rgba(58, 58, 58, 0.95);
+    background: rgba(60, 60, 60, 0.95);
 }
 
-body.dark-mode .lightbox-close svg,
-body.dark-mode .chat-media-lightbox-close svg {
-    stroke: #e0e0e0;
+/* Mobile Headers Dark Mode */
+body.dark-mode .chat-mobile-header {
+    background: #1f1f1f;
+    border-bottom: 1px solid #404040;
 }
 
-body.dark-mode .lightbox-nav,
-body.dark-mode .chat-media-lightbox-nav {
-    background: rgba(45, 45, 45, 0.95);
-}
-
-body.dark-mode .lightbox-nav:hover,
-body.dark-mode .chat-media-lightbox-nav:hover {
-    background: rgba(58, 58, 58, 0.95);
-}
-
-body.dark-mode .lightbox-nav svg,
-body.dark-mode .chat-media-lightbox-nav svg {
-    stroke: #e0e0e0;
-}
-
-body.dark-mode .lightbox-counter,
-body.dark-mode .chat-media-lightbox-counter {
-    background: rgba(0, 0, 0, 0.8);
+body.dark-mode .chat-mobile-exit-btn {
     color: #e0e0e0;
 }
 
-body.dark-mode .chat-message.received .chat-message-bubble {
+body.dark-mode .chat-mobile-exit-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .chat-mobile-header-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .chat-messages-mobile-header {
+    background: #1f1f1f;
+    border-bottom: 1px solid #404040;
+}
+
+body.dark-mode .chat-user-name-mobile {
+    color: #e0e0e0;
+}
+
+body.dark-mode .chat-back-btn {
+    color: #e0e0e0;
+}
+
+body.dark-mode .chat-back-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .chat-favorite-btn-mobile {
+    color: #b0b0b0;
+}
+
+body.dark-mode .chat-favorite-btn-mobile:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .chat-favorite-btn-mobile.active {
+    color: #ffc107;
+}
+
+body.dark-mode .chat-favorite-btn-mobile.active .chat-favorite-icon {
+    fill: #ffc107;
+    stroke: #ffc107;
+}
+
+/* Remove Confirmation Modal Dark Mode */
+body.dark-mode .chat-remove-modal-content {
+    background: #2d2d2d;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .chat-remove-modal-content h3 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .chat-remove-modal-content p {
+    color: #b0b0b0;
+}
+
+body.dark-mode .chat-remove-modal-cancel {
     background: #3a3a3a;
     color: #e0e0e0;
 }
 
-body.dark-mode .chat-new-contact-item.active,
-body.dark-mode .chat-contact-item.active {
-    background: rgba(132, 191, 94, 0.15);
+body.dark-mode .chat-remove-modal-cancel:hover {
+    background: #4a4a4a;
 }
 
+body.dark-mode .chat-remove-modal-confirm {
+    background: #d32f2f;
+    color: white;
+}
+
+body.dark-mode .chat-remove-modal-confirm:hover {
+    background: #c62828;
+}

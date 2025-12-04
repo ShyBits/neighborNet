@@ -21,6 +21,7 @@ try {
     if ($currentUserId) {
         $sql .= ",
             MAX(CASE WHEN anf_user.user_id = ? THEN anf_user.id END) as user_anfrage_id,
+            MAX(CASE WHEN anf_user.user_id = ? AND anf_user.status IN ('pending', 'accepted', 'confirmed') THEN anf_user.status END) as user_anfrage_status,
             (a.user_id = ?) as is_owner";
     }
     
@@ -43,7 +44,7 @@ try {
     $stmt = $conn->prepare($sql);
     
     if ($currentUserId) {
-        $stmt->execute([$currentUserId, $currentUserId, $currentUserId]);
+        $stmt->execute([$currentUserId, $currentUserId, $currentUserId, $currentUserId]);
     } else {
         $stmt->execute();
     }
@@ -58,14 +59,20 @@ try {
             if ($angebot['user_anfrage_id']) {
                 $angebot['has_user_anfrage'] = true;
                 $angebot['user_anfrage_id'] = intval($angebot['user_anfrage_id']);
+                $angebot['user_anfrage_status'] = $angebot['user_anfrage_status'] ?? null;
+                $angebot['has_active_anfrage'] = in_array($angebot['user_anfrage_status'], ['pending', 'accepted', 'confirmed']);
             } else {
                 $angebot['has_user_anfrage'] = false;
                 $angebot['user_anfrage_id'] = null;
+                $angebot['user_anfrage_status'] = null;
+                $angebot['has_active_anfrage'] = false;
             }
         } else {
             $angebot['is_owner'] = false;
             $angebot['has_user_anfrage'] = false;
             $angebot['user_anfrage_id'] = null;
+            $angebot['user_anfrage_status'] = null;
+            $angebot['has_active_anfrage'] = false;
         }
     }
     unset($angebot);

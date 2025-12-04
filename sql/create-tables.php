@@ -11,6 +11,30 @@ if (file_exists(__DIR__ . '/universal-schema.php')) {
 }
 
 /**
+ * Zentrale Funktion zur Sicherstellung, dass alle Tabellen vorhanden sind
+ * Diese Funktion sollte von allen APIs aufgerufen werden
+ */
+if (!function_exists('ensureDatabaseTables')) {
+    function ensureDatabaseTables() {
+        // Verwende ensureAllTables wenn verfügbar (aus universal-schema.php)
+        if (function_exists('ensureAllTables')) {
+            ensureAllTables();
+        } elseif (function_exists('createTables')) {
+            // Fallback auf createTables
+            createTables();
+        } else {
+            // Letzter Fallback: Versuche ensure-schema.php zu laden
+            if (file_exists(__DIR__ . '/ensure-schema.php')) {
+                require_once __DIR__ . '/ensure-schema.php';
+                if (function_exists('ensureDatabaseSchema')) {
+                    ensureDatabaseSchema();
+                }
+            }
+        }
+    }
+}
+
+/**
  * Erkennt die Datenbank-Engine und gibt datenbank-spezifische SQL-Syntax zurück
  * Wird nur definiert, falls nicht bereits in universal-schema.php definiert
  */
@@ -275,6 +299,17 @@ function createTables() {
             `user_id` INT NOT NULL PRIMARY KEY,
             `last_activity` TIMESTAMP DEFAULT CURRENT_TIMESTAMP {$dbInfo['timestamp_update']}" . 
             ($dbInfo['driver'] === 'mysql' ? ", INDEX `idx_last_activity` (`last_activity`)" : "") . "
+        ) {$dbInfo['engine']} {$dbInfo['charset']}",
+        
+        "chat_favorites" => "CREATE TABLE IF NOT EXISTS `chat_favorites` (
+            `id` {$idColumn}{$primaryKeySuffix},
+            `user_id` INT NOT NULL,
+            `contact_user_id` INT NOT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP" .
+            ($dbInfo['driver'] === 'mysql' ? ",
+            UNIQUE KEY `unique_favorite` (`user_id`, `contact_user_id`),
+            INDEX `idx_user_id` (`user_id`),
+            INDEX `idx_contact_user_id` (`contact_user_id`)" : "") . "
         ) {$dbInfo['engine']} {$dbInfo['charset']}"
     ];
     
@@ -282,6 +317,34 @@ function createTables() {
     foreach ($baseTables as $tableName => $sql) {
         try {
             $conn->exec($sql);
+            
+            // Für chat_favorites: Erstelle Indizes separat für nicht-MySQL Datenbanken
+            if ($tableName === 'chat_favorites' && $dbInfo['driver'] !== 'mysql') {
+                try {
+                    if ($dbInfo['driver'] === 'pgsql') {
+                        $conn->exec("CREATE UNIQUE INDEX IF NOT EXISTS unique_favorite ON chat_favorites(user_id, contact_user_id)");
+                        $conn->exec("CREATE INDEX IF NOT EXISTS idx_user_id ON chat_favorites(user_id)");
+                        $conn->exec("CREATE INDEX IF NOT EXISTS idx_contact_user_id ON chat_favorites(contact_user_id)");
+                    } elseif ($dbInfo['driver'] === 'sqlite') {
+                        // Check if indexes exist
+                        $stmt = $conn->query("SELECT name FROM sqlite_master WHERE type='index' AND name='unique_favorite'");
+                        if ($stmt->rowCount() === 0) {
+                            $conn->exec("CREATE UNIQUE INDEX unique_favorite ON chat_favorites(user_id, contact_user_id)");
+                        }
+                        $stmt = $conn->query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_user_id'");
+                        if ($stmt->rowCount() === 0) {
+                            $conn->exec("CREATE INDEX idx_user_id ON chat_favorites(user_id)");
+                        }
+                        $stmt = $conn->query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_contact_user_id'");
+                        if ($stmt->rowCount() === 0) {
+                            $conn->exec("CREATE INDEX idx_contact_user_id ON chat_favorites(contact_user_id)");
+                        }
+                    }
+                } catch(PDOException $e) {
+                    // Ignoriere Fehler wenn Index bereits existiert
+                    error_log("Fehler beim Erstellen der Indizes für {$tableName}: " . $e->getMessage());
+                }
+            }
         } catch(PDOException $e) {
             // Ignoriere Fehler wenn Tabelle bereits existiert
             error_log("Fehler beim Erstellen der Tabelle {$tableName}: " . $e->getMessage());

@@ -13,7 +13,17 @@ body.dark-mode .finanzen-open-btn:hover {
 }
 
 body.dark-mode .finanzen-modal-close {
+    color: #ffffff;
     background-color: rgba(45, 45, 45, 0.9);
+}
+
+body.dark-mode .finanzen-view-toggle-btn {
+    background-color: rgba(45, 45, 45, 0.9);
+    color: #e0e0e0;
+}
+
+body.dark-mode .finanzen-view-toggle-btn:hover {
+    background-color: rgba(60, 60, 60, 0.9);
 }
 
 body.dark-mode .finanzen-modal-content {
@@ -48,5 +58,65 @@ body.dark-mode .finanzen-button {
 
 body.dark-mode .finanzen-button:hover {
     background: #6ba04a;
+}
+
+body.dark-mode .a4-paper {
+    background: #2d2d2d;
+    box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .finanzen-paper-content {
+    color: #e0e0e0;
+}
+
+body.dark-mode .finanzen-paper-content h2 {
+    color: #e0e0e0;
+    border-bottom-color: #84BF5E;
+}
+
+body.dark-mode .finanzen-content-section h3 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .finanzen-row {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .finanzen-row.finanzen-total {
+    border-top-color: #e0e0e0;
+}
+
+body.dark-mode .finanzen-label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .finanzen-value {
+    color: #e0e0e0;
+}
+
+body.dark-mode .pdf-view-container {
+    background: #2d2d2d;
+}
+
+body.dark-mode .pdf-view-content {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+body.dark-mode .pdf-view-content h2,
+body.dark-mode .pdf-view-content h3 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .pdf-view-close {
+    background-color: rgba(45, 45, 45, 0.9);
+    color: #ffffff;
+}
+
+body.dark-mode .pdf-view-close:hover {
+    background-color: rgba(60, 60, 60, 0.9);
 }
 

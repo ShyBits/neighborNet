@@ -63,6 +63,8 @@ $userAvatar = $_SESSION['user_avatar'] ?? 'assets/images/profile-placeholder.svg
     </div>
 </div>
 
+<script src="<?php echo isset($basePath) ? $basePath : ''; ?>features/profile/profile.js"></script>
+
 
 
 

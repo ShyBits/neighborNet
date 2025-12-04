@@ -102,7 +102,7 @@ try {
         }
         
         $anfrageData = null;
-        if ($msg['file_type'] === 'anfrage_request' && $msg['file_path']) {
+        if (($msg['file_type'] === 'anfrage_request' || $msg['file_type'] === 'anfrage_accepted') && $msg['file_path']) {
             $anfrageData = json_decode($msg['file_path'], true);
             if ($anfrageData && isset($anfrageData['anfrage_id'])) {
                 $anfrageStmt = $conn->prepare("SELECT id, status FROM anfragen WHERE id = ?");
@@ -118,7 +118,7 @@ try {
             'id' => intval($msg['id']),
             'sender_id' => intval($msg['sender_id']),
             'message' => $msg['message'],
-            'encrypted' => (bool)($msg['encrypted'] ?? false),
+            'encrypted' => false, // Encryption removed
             'file_path' => $msg['file_path'] ?? null,
             'file_type' => $msg['file_type'] ?? null,
             'created_at' => $createdAt, // Real timestamp from database

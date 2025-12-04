@@ -79,7 +79,7 @@
 
 .banner-title-brand {
     font-size: 64px;
-    font-weight: 900;
+    font-weight: 1000;
     color: #ffffff;
     letter-spacing: -0.5px;
     line-height: 1.2;
@@ -125,7 +125,34 @@
     color: #2c3e50;
     text-transform: uppercase;
     letter-spacing: 2px;
-    margin: 0;
+    margin: 0 0 20px 0;
+}
+
+.banner-cta-btn {
+    width: 100%;
+    padding: 12px 24px;
+    background-color: #84BF5E;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 8px;
+    font-family: 'Roboto', sans-serif;
+}
+
+.banner-cta-btn:hover {
+    background-color: #6ba04a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(132, 191, 94, 0.3);
+}
+
+.banner-cta-btn:active {
+    transform: translateY(0);
 }
 
 /* Logo is now positioned as background element */
@@ -212,6 +239,11 @@
     
     .banner-stat-label {
         font-size: 12px;
+    }
+    
+    .banner-cta-btn {
+        font-size: 12px;
+        padding: 10px 20px;
     }
 }
 

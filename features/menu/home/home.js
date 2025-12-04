@@ -9,6 +9,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Banner CTA Button
+    const bannerCtaBtn = document.getElementById('bannerCtaBtn');
+    if (bannerCtaBtn) {
+        bannerCtaBtn.addEventListener('click', function() {
+            // Prüfe ob Benutzer angemeldet ist
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            fetch(basePath + 'api/check-auth.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.is_logged_in && !data.is_guest) {
+                        // Benutzer ist angemeldet - navigiere zu Angebote & Karte
+                        window.location.href = basePath + 'angebote-karte.php';
+                    } else {
+                        // Benutzer ist nicht angemeldet - öffne Registrierungs-Modal
+                        if (typeof window.openAuthModal === 'function') {
+                            window.openAuthModal('register');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Fehler beim Prüfen der Anmeldung:', error);
+                    // Fallback: Öffne Registrierungs-Modal
+                    if (typeof window.openAuthModal === 'function') {
+                        window.openAuthModal('register');
+                    }
+                });
+        });
+    }
+    
     loadStatistics();
 });
 

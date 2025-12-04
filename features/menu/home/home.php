@@ -24,6 +24,7 @@ if (!isset($basePath)) {
                 <div class="banner-stat-card">
                     <div class="banner-stat-number" id="bannerUserCount">0</div>
                     <div class="banner-stat-label">einmalige Nutzer</div>
+                    <button class="banner-cta-btn" id="bannerCtaBtn">Jetzt mitmachen</button>
                 </div>
             </div>
         </div>

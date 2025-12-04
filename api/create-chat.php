@@ -79,7 +79,7 @@ try {
     
     $conn->commit();
     
-    // Get participant IDs for encryption
+    // Get participant IDs
     $stmt = $conn->prepare("
         SELECT user_id FROM chat_participants 
         WHERE chat_id = ? 

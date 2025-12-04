@@ -77,6 +77,11 @@ if (isset($_SERVER['PHP_SELF'])) {
         ?>
     </title>
     
+    <!-- Google Fonts - Roboto -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- CSS Dateien laden -->
     <link rel="stylesheet" href="<?php echo $basePath; ?>assets/css/style.css">
     <link rel="stylesheet" href="<?php echo $basePath; ?>assets/css/footer.css">

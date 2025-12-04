@@ -32,6 +32,8 @@ $conn = getDBConnection();
 try {
     $conn->beginTransaction();
     
+    // Prüfe ob bereits eine aktive Anfrage existiert (nicht rejected, cancelled, completed)
+    // Wenn rejected/cancelled/completed, darf wieder eine neue Anfrage gesendet werden
     $stmt = $conn->prepare("
         SELECT a.id, a.status
         FROM anfragen a
@@ -39,7 +41,7 @@ try {
         WHERE a.angebot_id = ? 
         AND a.user_id = ?
         AND an.user_id = ?
-        AND a.status IN ('pending', 'accepted')
+        AND a.status IN ('pending', 'accepted', 'confirmed')
         LIMIT 1
     ");
     $stmt->execute([$angebotId, $helperId, $receiverId]);
@@ -50,14 +52,20 @@ try {
         http_response_code(400);
         echo json_encode([
             'success' => false, 
-            'message' => 'Sie haben bereits eine Anfrage für dieses Angebot gesendet',
+            'message' => 'Sie haben bereits eine aktive Anfrage für dieses Angebot gesendet',
             'anfrage_id' => intval($existingAnfrage['id']),
             'status' => $existingAnfrage['status']
         ]);
         exit;
     }
     
-    $stmt = $conn->prepare("SELECT id, title, user_id FROM angebote WHERE id = ?");
+    // Hole Angebot mit allen wichtigen Infos
+    $stmt = $conn->prepare("
+        SELECT id, title, user_id, category, start_date, start_time, end_time, address, 
+               COALESCE(required_persons, 1) as required_persons 
+        FROM angebote 
+        WHERE id = ?
+    ");
     $stmt->execute([$angebotId]);
     $angebot = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -68,9 +76,75 @@ try {
         exit;
     }
     
+    $requiredPersons = intval($angebot['required_persons'] ?? 1);
+    
+    // Prüfe wie viele Anfragen bereits angenommen wurden (accepted oder confirmed)
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as accepted_count
+        FROM anfragen
+        WHERE angebot_id = ?
+        AND status IN ('accepted', 'confirmed')
+    ");
+    $stmt->execute([$angebotId]);
+    $acceptedCount = intval($stmt->fetch(PDO::FETCH_ASSOC)['accepted_count'] ?? 0);
+    
+    if ($acceptedCount >= $requiredPersons) {
+        $conn->rollBack();
+        http_response_code(400);
+        echo json_encode([
+            'success' => false, 
+            'message' => "Die maximale Anzahl von {$requiredPersons} Helfer" . ($requiredPersons > 1 ? "n" : "") . " wurde bereits erreicht."
+        ]);
+        exit;
+    }
+    
     $stmt = $conn->prepare("INSERT INTO anfragen (angebot_id, user_id, status) VALUES (?, ?, 'pending')");
     $stmt->execute([$angebotId, $helperId]);
     $anfrageId = $conn->lastInsertId();
+    
+    // Formatiere Datum und Zeit
+    $startDate = $angebot['start_date'];
+    $startTime = $angebot['start_time'] ? substr($angebot['start_time'], 0, 5) : '';
+    $endTime = $angebot['end_time'] ? substr($angebot['end_time'], 0, 5) : '';
+    
+    $dateObj = DateTime::createFromFormat('Y-m-d', $startDate);
+    $formattedDate = $dateObj ? $dateObj->format('d.m.Y') : $startDate;
+    
+    $timeStr = '';
+    if ($startTime && $endTime) {
+        $timeStr = $startTime . ' - ' . $endTime . ' Uhr';
+    } elseif ($startTime) {
+        $timeStr = $startTime . ' Uhr';
+    }
+    
+    // Kategorie-Farben
+    $categoryColors = [
+        'gartenarbeit' => '#4CAF50',
+        'haushalt' => '#2196F3',
+        'umzug' => '#FF9800',
+        'reparatur' => '#9C27B0',
+        'betreuung' => '#E91E63',
+        'einkauf' => '#00BCD4',
+        'sonstiges' => '#607D8B'
+    ];
+    
+    $categoryColor = $categoryColors[$angebot['category']] ?? '#607D8B';
+    
+    // Erstelle kompakte Nachricht mit den wichtigsten Infos
+    $messageParts = [];
+    $messageParts[] = htmlspecialchars($angebot['title'], ENT_QUOTES, 'UTF-8');
+    if ($formattedDate) {
+        $messageParts[] = $formattedDate;
+    }
+    if ($timeStr) {
+        $messageParts[] = $timeStr;
+    }
+    if ($angebot['address']) {
+        $addressParts = explode(',', $angebot['address']);
+        $messageParts[] = trim($addressParts[0]); // Nur Straße, nicht PLZ/Stadt
+    }
+    
+    $messageText = implode(' • ', $messageParts);
     
     // Erstelle spezielle Chat-Nachricht mit Buttons
     $messageData = json_encode([
@@ -78,11 +152,11 @@ try {
         'anfrage_id' => $anfrageId,
         'angebot_id' => $angebotId,
         'angebot_title' => $angebot['title'],
+        'category' => $angebot['category'],
+        'category_color' => $categoryColor,
         'helper_id' => $helperId,
         'requester_id' => $receiverId
     ]);
-    
-    $messageText = "Ich biete Ihnen meine Hilfe bei Ihrer Anfrage \"" . htmlspecialchars($angebot['title'], ENT_QUOTES, 'UTF-8') . "\" an.";
     
     $stmt = $conn->prepare("
         INSERT INTO messages (chat_id, sender_id, receiver_id, message, encrypted, file_path, file_type) 

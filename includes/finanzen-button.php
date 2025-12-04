@@ -14,6 +14,19 @@
 <div class="finanzen-modal-overlay" id="finanzenModalOverlay">
     <div class="finanzen-modal-container" id="finanzenModalContainer">
         <button class="finanzen-modal-close" id="finanzenModalClose">×</button>
+        <button class="finanzen-view-toggle-btn" id="finanzenViewToggleBtn" title="Zwischen Grid- und Free-View wechseln">
+            <svg class="view-icon-grid" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+            </svg>
+            <svg class="view-icon-free" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3h18v18H3z"></path>
+                <path d="M3 9h18"></path>
+                <path d="M9 3v18"></path>
+            </svg>
+        </button>
         
         <!-- A4 Papier Blätter -->
         <div class="finanzen-papers-container" id="finanzenPapersContainer">

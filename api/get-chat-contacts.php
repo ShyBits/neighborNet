@@ -4,6 +4,11 @@ header('Content-Type: application/json');
 require_once '../config/config.php';
 require_once '../sql/create-tables.php';
 
+// Ensure tableExists function is available
+if (file_exists('../sql/universal-schema.php')) {
+    require_once '../sql/universal-schema.php';
+}
+
 if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Nicht angemeldet']);
@@ -13,6 +18,14 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
 $userId = intval($_SESSION['user_id']);
 $limit = intval($_GET['limit'] ?? 50);
 $offset = intval($_GET['offset'] ?? 0);
+
+// Ensure all tables are created (including chat_favorites)
+if (function_exists('createTables')) {
+    createTables();
+} elseif (function_exists('ensureAllTables')) {
+    ensureAllTables();
+}
+
 $conn = getDBConnection();
 
 if (function_exists('columnExists')) {
@@ -85,50 +98,119 @@ try {
         $nameSQL = "TRIM(CONCAT(COALESCE(u2.first_name, ''), ' ', COALESCE(u2.last_name, ''))) as name";
     }
     
-    $stmt = $conn->prepare("
-        SELECT 
-            c.id as chat_id,
-            cp2.user_id as user_id,
-            u2.username as username,
-            {$nameSQL},
-            u2.avatar as avatar,
-            cm.last_message_at,
-            cm.last_message_id,
-            cm.unread_count_user_1,
-            cm.unread_count_user_2,
-            CASE 
-                WHEN (SELECT MIN(user_id) FROM chat_participants WHERE chat_id = c.id) = ? 
-                THEN cm.unread_count_user_1
-                ELSE cm.unread_count_user_2
-            END as unread_count,
-            m.message as last_message,
-            m.sender_id as last_message_sender_id,
-            m.encrypted as last_message_encrypted,
-            m.file_path as last_message_file_path,
-            m.file_type as last_message_file_type,
-            ua.last_activity,
-            {$activityStatusSQL}
-        FROM chats c
-        INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
-        INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
-        LEFT JOIN users u2 ON cp2.user_id = u2.id
-        LEFT JOIN chat_metadata cm ON c.id = cm.chat_id
-        LEFT JOIN messages m ON (cm.last_message_id = m.id AND m.chat_id = c.id)
-        LEFT JOIN user_activity ua ON ua.user_id = cp2.user_id
-        ORDER BY COALESCE(cm.last_message_at, c.created_at) DESC
-        LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
-    ");
+    // Check if chat_archived table exists
+    $archivedTableExists = false;
+    if (function_exists('tableExists')) {
+        $archivedTableExists = tableExists($conn, 'chat_archived');
+    } else {
+        // If tableExists function doesn't exist, assume table exists after ensureAllTables()
+        // This is safe since ensureAllTables() should have created it
+        try {
+            $testStmt = $conn->query("SELECT 1 FROM chat_archived LIMIT 1");
+            $archivedTableExists = true;
+        } catch(PDOException $e) {
+            $archivedTableExists = false;
+        }
+    }
     
-    $stmt->execute([$userId, $userId, $userId]);
+    if ($archivedTableExists) {
+        $stmt = $conn->prepare("
+            SELECT 
+                c.id as chat_id,
+                cp2.user_id as user_id,
+                u2.username as username,
+                {$nameSQL},
+                u2.avatar as avatar,
+                cm.last_message_at,
+                cm.last_message_id,
+                cm.unread_count_user_1,
+                cm.unread_count_user_2,
+                CASE 
+                    WHEN (SELECT MIN(user_id) FROM chat_participants WHERE chat_id = c.id) = ? 
+                    THEN cm.unread_count_user_1
+                    ELSE cm.unread_count_user_2
+                END as unread_count,
+                m.message as last_message,
+                m.sender_id as last_message_sender_id,
+                m.encrypted as last_message_encrypted,
+                m.file_path as last_message_file_path,
+                m.file_type as last_message_file_type,
+                ua.last_activity,
+                {$activityStatusSQL},
+                CASE WHEN cf.id IS NOT NULL THEN 1 ELSE 0 END as is_favorite
+            FROM chats c
+            INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
+            INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
+            LEFT JOIN users u2 ON cp2.user_id = u2.id
+            LEFT JOIN chat_metadata cm ON c.id = cm.chat_id
+            LEFT JOIN messages m ON (cm.last_message_id = m.id AND m.chat_id = c.id)
+            LEFT JOIN user_activity ua ON ua.user_id = cp2.user_id
+            LEFT JOIN chat_favorites cf ON cf.user_id = ? AND cf.contact_user_id = cp2.user_id
+            LEFT JOIN chat_archived ca ON ca.user_id = ? AND ca.chat_id = c.id
+            WHERE ca.id IS NULL
+            ORDER BY COALESCE(cm.last_message_at, c.created_at) DESC
+            LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
+        ");
+        $stmt->execute([$userId, $userId, $userId, $userId, $userId]);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT 
+                c.id as chat_id,
+                cp2.user_id as user_id,
+                u2.username as username,
+                {$nameSQL},
+                u2.avatar as avatar,
+                cm.last_message_at,
+                cm.last_message_id,
+                cm.unread_count_user_1,
+                cm.unread_count_user_2,
+                CASE 
+                    WHEN (SELECT MIN(user_id) FROM chat_participants WHERE chat_id = c.id) = ? 
+                    THEN cm.unread_count_user_1
+                    ELSE cm.unread_count_user_2
+                END as unread_count,
+                m.message as last_message,
+                m.sender_id as last_message_sender_id,
+                m.encrypted as last_message_encrypted,
+                m.file_path as last_message_file_path,
+                m.file_type as last_message_file_type,
+                ua.last_activity,
+                {$activityStatusSQL},
+                CASE WHEN cf.id IS NOT NULL THEN 1 ELSE 0 END as is_favorite
+            FROM chats c
+            INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
+            INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
+            LEFT JOIN users u2 ON cp2.user_id = u2.id
+            LEFT JOIN chat_metadata cm ON c.id = cm.chat_id
+            LEFT JOIN messages m ON (cm.last_message_id = m.id AND m.chat_id = c.id)
+            LEFT JOIN user_activity ua ON ua.user_id = cp2.user_id
+            LEFT JOIN chat_favorites cf ON cf.user_id = ? AND cf.contact_user_id = cp2.user_id
+            ORDER BY COALESCE(cm.last_message_at, c.created_at) DESC
+            LIMIT " . intval($limit) . " OFFSET " . intval($offset) . "
+        ");
+        $stmt->execute([$userId, $userId, $userId, $userId]);
+    }
     $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    $countStmt = $conn->prepare("
-        SELECT COUNT(DISTINCT c.id) as total
-        FROM chats c
-        INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
-        INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
-    ");
-    $countStmt->execute([$userId, $userId]);
+    if ($archivedTableExists) {
+        $countStmt = $conn->prepare("
+            SELECT COUNT(DISTINCT c.id) as total
+            FROM chats c
+            INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
+            INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
+            LEFT JOIN chat_archived ca ON ca.user_id = ? AND ca.chat_id = c.id
+            WHERE ca.id IS NULL
+        ");
+        $countStmt->execute([$userId, $userId, $userId]);
+    } else {
+        $countStmt = $conn->prepare("
+            SELECT COUNT(DISTINCT c.id) as total
+            FROM chats c
+            INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = ?
+            INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id != ?
+        ");
+        $countStmt->execute([$userId, $userId]);
+    }
     $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
     
     $contacts = [];
@@ -163,14 +245,15 @@ try {
             'last_message' => $chat['last_message'] ?? null,
             'last_message_at' => $chat['last_message_at'] ?? null,
             'last_message_sender_id' => $lastMessageSenderId,
-            'last_message_encrypted' => isset($chat['last_message_encrypted']) ? (bool)$chat['last_message_encrypted'] : false,
+            'last_message_encrypted' => false, // Encryption removed
             'last_message_file_path' => $chat['last_message_file_path'] ?? null,
             'last_message_file_type' => $chat['last_message_file_type'] ?? null,
             'is_last_message_from_me' => $isLastMessageFromCurrentUser,
             'unread_count' => intval($chat['unread_count'] ?? 0),
             'status' => $status,
             'last_activity' => $chat['last_activity'] ?? null,
-            'participant_ids' => $participantIds
+            'participant_ids' => $participantIds,
+            'is_favorite' => isset($chat['is_favorite']) ? (bool)$chat['is_favorite'] : false
         ];
     }
     

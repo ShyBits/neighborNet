@@ -1,6 +1,6 @@
 <?php
-// Prüfe ob Karten-Einwilligung vorhanden ist
-$hasConsent = isset($_COOKIE['map_consent']) && $_COOKIE['map_consent'] === 'accepted';
+// Prüfe ob Karten-Einwilligung für Add-Modal vorhanden ist (separat von Hauptkarte)
+$hasConsent = isset($_COOKIE['add_modal_map_consent']) && $_COOKIE['add_modal_map_consent'] === 'accepted';
 ?>
 <div class="add-modal-overlay" id="addModalOverlay">
     <div class="add-modal" id="addModal">
@@ -30,7 +30,7 @@ $hasConsent = isset($_COOKIE['map_consent']) && $_COOKIE['map_consent'] === 'acc
                         </select>
                     </div>
                     <div class="form-group-third form-group-narrow">
-                        <label for="angebotRequiredPersons">Helkannsfer anz.</label>
+                        <label for="angebotRequiredPersons">Helfer anz.</label>
                         <input type="number" id="angebotRequiredPersons" min="1" max="100" value="1" placeholder="z.B. 2">
                     </div>
                 </div>
@@ -105,16 +105,18 @@ $hasConsent = isset($_COOKIE['map_consent']) && $_COOKIE['map_consent'] === 'acc
             <div class="add-modal-map">
                 <?php if ($hasConsent): ?>
                     <div id="addModalMap" class="add-modal-map-container"></div>
+                    <button class="add-modal-revoke-btn" id="addModalRevokeBtn" title="Einwilligung widerrufen">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 <?php else: ?>
                     <div class="add-modal-map-consent">
-                        <div class="map-consent-message">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                <circle cx="12" cy="10" r="3"></circle>
-                            </svg>
-                            <h3>Karten-Einwilligung erforderlich</h3>
-                            <p>Um die Karte zur Standortauswahl zu nutzen, benötigen wir Ihre Einwilligung zur Anzeige von Kartenmaterial.</p>
-                            <button type="button" class="map-consent-accept-btn" id="addModalConsentBtn">Einwilligen</button>
+                        <div class="consent-content">
+                            <h3>Karten-Einwilligung</h3>
+                            <p>Um die interaktive Karte zu nutzen, benötigen wir Ihre Einwilligung zur Anzeige von Kartenmaterial.</p>
+                            <button type="button" class="consent-accept-btn" id="addModalConsentBtn">Einwilligen</button>
                         </div>
                     </div>
                 <?php endif; ?>

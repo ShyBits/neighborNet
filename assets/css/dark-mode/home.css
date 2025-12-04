@@ -1,4 +1,13 @@
 /* Dark Mode - Home */
+
+body.dark-mode .banner-cta-btn {
+    background-color: #84BF5E;
+    color: #ffffff;
+}
+
+body.dark-mode .banner-cta-btn:hover {
+    background-color: #6ba04a;
+}
 /* Only changes white backgrounds, keeps main green color (#84BF5E) */
 
 /* Banner text colors remain white in dark mode for visibility */
@@ -10,7 +19,9 @@ body.dark-mode .banner-title-brand {
 body.dark-mode .banner-title-brand::after {
     background: rgba(255, 255, 255, 0.25);
 }
-
+body.dark-mode .banner-stat-card, .banner-badge {
+    background: rgb(255, 255, 255) !important;
+}
 body.dark-mode .banner-badge {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.25);
@@ -27,7 +38,7 @@ body.dark-mode .banner-stat-card {
 
 body.dark-mode .banner-stat-number,
 body.dark-mode .banner-stat-label {
-    color: #ffffff;
+    color: #84BF5E;
 }
 
 body.dark-mode .slide-features {
@@ -35,11 +46,15 @@ body.dark-mode .slide-features {
 }
 
 body.dark-mode .slide-title {
-    color: #e0e0e0;
+    color: #ffffff;
+}
+
+body.dark-mode .slide-how .slide-title {
+    color: #000000;
 }
 
 body.dark-mode .slide-subtitle {
-    color: #b0b0b0;
+    color: #ffffff;
 }
 
 body.dark-mode .feature-title {

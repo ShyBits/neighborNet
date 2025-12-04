@@ -336,9 +336,10 @@
     gap: 12px;
     height: 100%;
     overflow: hidden;
+    align-items: flex-start;
 }
 
-.angebote-item-left {
+.angebote-item-info {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -346,24 +347,15 @@
     overflow: hidden;
 }
 
-.angebote-item-right {
-    width: 160px;
+.angebote-item-image {
+    width: 120px;
     flex-shrink: 0;
 }
 
 .angebote-item-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    flex-direction: column;
     margin-bottom: 8px;
-    gap: 8px;
-}
-
-.angebote-item-title-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
 }
 
 .angebote-item-anfrage-badge-wrapper {
@@ -372,11 +364,18 @@
 
 .angebote-item-title {
     font-size: 16px;
-    font-weight: 500;
+    font-weight: bold;
     color: #2c3e50;
     margin: 0;
     text-transform: uppercase;
     line-height: 1.3;
+}
+
+.angebote-item-datetime {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
 }
 
 .angebote-item-time {
@@ -391,12 +390,26 @@
     font-weight: 400;
 }
 
+.angebote-item-separator {
+    font-size: 12px;
+    color: #5a6c7d;
+    font-weight: 400;
+}
+
+.angebote-item-location {
+    font-size: 12px;
+    color: #5a6c7d;
+    font-weight: 400;
+    margin-top: 4px;
+    display: block;
+}
+
 
 .angebote-item-image-container {
     position: relative;
     width: 100%;
-    height: 100px;
-    max-height: 100px;
+    height: 156px;
+    max-height: 156px;
     border-radius: 6px;
     overflow: hidden;
     background: #f5f5f5;
@@ -405,13 +418,13 @@
 .angebote-item-main-image {
     width: 100%;
     height: 100%;
-    max-height: 100px;
+    max-height: 156px;
     object-fit: cover;
 }
 
 .angebote-item-image-placeholder {
     width: 100%;
-    height: 100%;
+    height: 156px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -557,6 +570,17 @@
 
 .angebote-contact-btn-delete:hover {
     background-color: #c82333;
+}
+
+.angebote-contact-btn-disabled {
+    background-color: #cccccc !important;
+    color: #888888 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+.angebote-contact-btn-disabled:hover {
+    background-color: #cccccc !important;
 }
 
 .angebote-item-btn {
@@ -764,6 +788,17 @@
     background-color: #c82333;
 }
 
+.map-popup-contact-btn-disabled {
+    background-color: #cccccc !important;
+    color: #888888 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+.map-popup-contact-btn-disabled:hover {
+    background-color: #cccccc !important;
+}
+
 .map .leaflet-container {
     cursor: pointer;
 }
@@ -783,12 +818,9 @@
 }
 
 .consent-content {
-    background-color: #ffffff;
-    padding: 40px;
     border-radius: 8px;
     text-align: center;
     max-width: 500px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .consent-content h3 {
@@ -1516,9 +1548,9 @@
         width: 100%;
         flex-shrink: 0;
         order: -1;
-        height: 45vh;
+        height: 30vh;
         min-height: 180px;
-        max-height: 45vh;
+        max-height: 30vh;
         z-index: 1;
     }
     
@@ -1528,7 +1560,7 @@
     
     .angebote-list {
         width: 100%;
-        height: 50vh;
+        height: 65vh;
         overflow-y: auto;
         order: 1;
         padding: 16px;
@@ -1656,29 +1688,33 @@
     }
     
     .angebote-item {
-        padding: 12px;
-        padding-right: 50px;
+        padding: 12px 14px;
+        padding-right: 64px;
         height: 180px;
         min-height: 180px;
         max-height: 180px;
     }
     
     .angebote-item-content {
-        flex-direction: column;
+        display: flex;
         gap: 12px;
+        height: 100%;
+        overflow: hidden;
+        align-items: flex-start;
     }
     
-    .angebote-item-right {
-        width: 100%;
+    .angebote-item-image {
+        width: 120px;
+        flex-shrink: 0;
     }
     
     .angebote-item-image-container {
-        height: 120px;
-        max-height: 120px;
+        height: 156px;
+        max-height: 156px;
     }
     
     .angebote-contact-btn {
-        width: 40px;
+        width: 50px;
     }
     
     .login-prompt {
@@ -1734,13 +1770,13 @@
     }
     
     .karte-container {
-        height: 45vh;
+        height: 30vh;
         min-height: 150px;
     }
     
     .angebote-list {
         padding: 12px;
-        height: 50vh;
+        height: 65vh;
     }
     
     .angebote-list-title {
@@ -1748,8 +1784,8 @@
     }
     
     .angebote-item {
-        padding: 10px;
-        padding-right: 45px;
+        padding: 12px 14px;
+        padding-right: 64px;
         height: 180px;
         min-height: 180px;
         max-height: 180px;

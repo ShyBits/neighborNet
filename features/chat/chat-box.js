@@ -8,7 +8,6 @@
     let pollingInterval = null;
     let contactsCache = [];
     let messagesCache = new Map();
-    let encryptionKeys = new Map();
     let currentUserId = null; // Will be set from API responses
     let chatParticipants = new Map(); // Map of chatId -> [userIds]
     let isDragging = false;
@@ -30,6 +29,11 @@
     let currentMediaFiles = []; // Array of all media files in current chat
     let currentMediaIndex = 0; // Current index in media files array
     let totalUnreadCount = 0; // Total unread messages count
+    let showFavoritesOnly = false; // Filter for favorites
+    let showArchivedFavoritesOnly = false; // Filter for archived favorites
+    let currentContactIsFavorite = false; // Track if current contact is favorited
+    let contextMenuChatId = null; // Track which chat the context menu is for
+    let contextMenuItem = null; // Track which item the context menu is for
     
     // Initialize chat when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
@@ -72,6 +76,9 @@
         
         // Setup infinite scroll
         setupContactsScroll();
+        
+        // Check if archived tab should be visible
+        checkArchivedTabVisibility();
         setupNewContactsScroll();
         
         // Start polling for new messages
@@ -83,8 +90,7 @@
         // Start notification polling
         startNotificationPolling();
         
-        // Initialize encryption (generate keys if needed)
-        initEncryption();
+        // Encryption removed
         
         // Initialize media lightbox
         initMediaLightbox();
@@ -267,11 +273,18 @@
         
         // Tab navigation
         const contactsTab = document.getElementById('chatContactsTab');
+        const archivedTab = document.getElementById('chatArchivedTab');
         const newContactsTab = document.getElementById('chatNewContactsTab');
         
         if (contactsTab) {
             contactsTab.addEventListener('click', function() {
                 switchView('contacts');
+            });
+        }
+        
+        if (archivedTab) {
+            archivedTab.addEventListener('click', function() {
+                switchView('archived');
             });
         }
         
@@ -285,6 +298,70 @@
         const searchInput = document.getElementById('chatSearchInput');
         if (searchInput) {
             searchInput.addEventListener('input', handleSearch);
+            searchInput.addEventListener('keyup', handleSearch);
+            searchInput.addEventListener('change', handleSearch);
+        }
+        
+        // Favorites filter button
+        const favoritesFilterBtn = document.getElementById('chatFavoritesFilterBtn');
+        if (favoritesFilterBtn) {
+            favoritesFilterBtn.addEventListener('click', toggleFavoritesFilter);
+        }
+        
+        const archivedFavoritesFilterBtn = document.getElementById('chatArchivedFavoritesFilterBtn');
+        if (archivedFavoritesFilterBtn) {
+            archivedFavoritesFilterBtn.addEventListener('click', toggleArchivedFavoritesFilter);
+        }
+        
+        // Favorite button in chat header
+        const favoriteBtn = document.getElementById('chatFavoriteBtn');
+        const favoriteBtnMobile = document.getElementById('chatFavoriteBtnMobile');
+        if (favoriteBtn) {
+            favoriteBtn.addEventListener('click', toggleFavorite);
+        }
+        if (favoriteBtnMobile) {
+            favoriteBtnMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFavorite();
+            });
+            // Also add touch event for better mobile support
+            favoriteBtnMobile.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFavorite();
+            });
+        }
+        
+        // Context menu handlers
+        // Initialize context menu handlers (only once)
+        initContextMenuHandlers();
+        
+        // Remove confirmation modal handlers
+        const removeModal = document.getElementById('chatRemoveConfirmModal');
+        const removeCancelBtn = document.getElementById('chatRemoveCancelBtn');
+        const removeConfirmBtn = document.getElementById('chatRemoveConfirmBtn');
+        
+        if (removeCancelBtn) {
+            removeCancelBtn.addEventListener('click', function() {
+                hideRemoveConfirmModal();
+            });
+        }
+        
+        if (removeConfirmBtn) {
+            removeConfirmBtn.addEventListener('click', function() {
+                hideRemoveConfirmModal();
+                handleRemoveChat();
+            });
+        }
+        
+        // Close modal when clicking outside
+        if (removeModal) {
+            removeModal.addEventListener('click', function(e) {
+                if (e.target === removeModal) {
+                    hideRemoveConfirmModal();
+                }
+            });
         }
         
         // Back button for mobile navigation
@@ -352,6 +429,14 @@
             // Clear file preview if any
             removeFilePreview();
             
+            // Clear input field when going back to contacts view
+            const input = document.getElementById('chatInput');
+            if (input) {
+                input.value = '';
+                input.style.height = 'auto';
+            }
+            selectedFiles = [];
+            
             // Don't clear currentChatId and currentContactId here - we want to allow reopening the same chat
             // The contacts are now active again and can be clicked to open chats
         }
@@ -359,39 +444,91 @@
     
     function updateMobileHeaderTitle(title) {
         if (!isMobile()) return;
+        // Update desktop title
         const titleEl = document.querySelector('.chat-box-title');
         if (titleEl) {
             titleEl.textContent = title;
         }
+        // Update mobile header title only if we're in messages view
+        // Don't change it if we're in contacts view
+        const mobileHeaderTitle = document.querySelector('.chat-mobile-header-title');
+        const isInMessagesView = chatBox && chatBox.classList.contains('show-messages');
+        if (mobileHeaderTitle && isInMessagesView) {
+            // Only update if we're actually showing messages
+            // Otherwise keep "ChatNet" in contacts view
+            if (title !== 'ChatNet') {
+                mobileHeaderTitle.textContent = title;
+            }
+        }
     }
     
-    // Switch between contacts and new contacts view
+    // Switch between contacts, archived, and new contacts view
     function switchView(view) {
         const contactsTab = document.getElementById('chatContactsTab');
+        const archivedTab = document.getElementById('chatArchivedTab');
         const newContactsTab = document.getElementById('chatNewContactsTab');
         const contactsList = document.getElementById('chatContactsList');
+        const archivedList = document.getElementById('chatArchivedContactsList');
         const newContactsList = document.getElementById('chatNewContactsList');
         const searchInput = document.getElementById('chatSearchInput');
+        const favoritesFilterBtn = document.getElementById('chatFavoritesFilterBtn');
         
         if (view === 'contacts') {
             // Show contacts view
             if (contactsTab) contactsTab.classList.add('active');
+            if (archivedTab) archivedTab.classList.remove('active');
             if (newContactsTab) newContactsTab.classList.remove('active');
             if (contactsList) contactsList.style.display = 'flex';
+            if (archivedList) archivedList.style.display = 'none';
             if (newContactsList) newContactsList.style.display = 'none';
+            // Show favorites filter button in contacts tab, hide archived favorites filter button
+            if (favoritesFilterBtn) favoritesFilterBtn.style.display = 'flex';
+            const archivedFavoritesFilterBtn = document.getElementById('chatArchivedFavoritesFilterBtn');
+            if (archivedFavoritesFilterBtn) archivedFavoritesFilterBtn.style.display = 'none';
             if (searchInput) {
                 searchInput.placeholder = 'Nach Kontakten suchen...';
                 searchInput.value = '';
                 handleSearch({ target: searchInput });
             }
+        } else if (view === 'archived') {
+            // Show archived contacts view
+            if (contactsTab) contactsTab.classList.remove('active');
+            if (archivedTab) archivedTab.classList.add('active');
+            if (newContactsTab) newContactsTab.classList.remove('active');
+            if (contactsList) contactsList.style.display = 'none';
+            if (archivedList) archivedList.style.display = 'flex';
+            if (newContactsList) newContactsList.style.display = 'none';
+            // Hide regular favorites filter button, show archived favorites filter button
+            if (favoritesFilterBtn) favoritesFilterBtn.style.display = 'none';
+            const archivedFavoritesFilterBtn = document.getElementById('chatArchivedFavoritesFilterBtn');
+            if (archivedFavoritesFilterBtn) archivedFavoritesFilterBtn.style.display = 'flex';
+            // Reset regular favorites filter when switching to archived (but keep archived filter state)
+            showFavoritesOnly = false;
+            if (favoritesFilterBtn) favoritesFilterBtn.classList.remove('active');
+            if (searchInput) {
+                searchInput.placeholder = 'Nach archivierten Kontakten suchen...';
+                searchInput.value = '';
+            }
+            
+            // Always reload archived contacts when switching to this tab
+            loadArchivedContacts(true);
         } else if (view === 'new-contacts') {
             // Show new contacts view
             if (contactsTab) contactsTab.classList.remove('active');
+            if (archivedTab) archivedTab.classList.remove('active');
             if (newContactsTab) newContactsTab.classList.add('active');
             if (contactsList) contactsList.style.display = 'none';
+            if (archivedList) archivedList.style.display = 'none';
             if (newContactsList) newContactsList.style.display = 'flex';
+            // Hide favorites filter buttons in new contacts tab
+            if (favoritesFilterBtn) favoritesFilterBtn.style.display = 'none';
+            const archivedFavoritesFilterBtn = document.getElementById('chatArchivedFavoritesFilterBtn');
+            if (archivedFavoritesFilterBtn) archivedFavoritesFilterBtn.style.display = 'none';
+            // Reset favorites filter when switching to new contacts
+            showFavoritesOnly = false;
+            if (favoritesFilterBtn) favoritesFilterBtn.classList.remove('active');
             if (searchInput) {
-                searchInput.placeholder = 'Nach neuen Kontakten suchen...';
+                searchInput.placeholder = 'Nach Kontakten suchen...';
                 searchInput.value = '';
                 handleSearch({ target: searchInput });
             }
@@ -444,6 +581,7 @@
     function hideChatBox() {
         chatBox.classList.add('hidden');
         stopPolling();
+        hideAnfrageStatusBar(); // Hide status bar when closing chat
         
         // On mobile, reset to contacts view when closing
         if (isMobile()) {
@@ -502,27 +640,600 @@
     }
     
     async function handleSearch(e) {
+        if (!e || !e.target) return;
+        
         const query = e.target.value.trim().toLowerCase();
         const newContactsTab = document.getElementById('chatNewContactsTab');
+        const archivedTab = document.getElementById('chatArchivedTab');
         const isNewContactsView = newContactsTab && newContactsTab.classList.contains('active');
+        const isArchivedView = archivedTab && archivedTab.classList.contains('active');
         
         if (isNewContactsView) {
             // Search in new contacts
             searchNewContacts(query);
-        } else {
-            // Search in existing contacts
-            if (query === '') {
-                await displayContacts(contactsCache);
-                return;
+        } else if (isArchivedView) {
+            // Search in archived contacts
+            let filtered = archivedContactsCache;
+            
+            // Apply search filter
+            if (query !== '') {
+                filtered = filtered.filter(contact => {
+                    const name = (contact.name || '').toLowerCase();
+                    const username = (contact.username || '').toLowerCase();
+                    return name.includes(query) || username.includes(query);
+                });
             }
             
-            const filtered = contactsCache.filter(contact => {
-                const name = (contact.name || '').toLowerCase();
-                const username = (contact.username || '').toLowerCase();
-                return name.includes(query) || username.includes(query);
-            });
+            // Apply favorites filter
+            if (showArchivedFavoritesOnly) {
+                filtered = filtered.filter(contact => contact.is_favorite === true);
+            }
+            
+            await displayArchivedContacts(filtered, true);
+        } else {
+            // Search in existing contacts
+            let filtered = contactsCache;
+            
+            // Apply search filter
+            if (query !== '') {
+                filtered = filtered.filter(contact => {
+                    const name = (contact.name || '').toLowerCase();
+                    const username = (contact.username || '').toLowerCase();
+                    return name.includes(query) || username.includes(query);
+                });
+            }
+            
+            // Apply favorites filter
+            if (showFavoritesOnly) {
+                filtered = filtered.filter(contact => contact.is_favorite === true);
+            }
             
             await displayContacts(filtered);
+        }
+    }
+    
+    // Toggle favorites filter
+    async function toggleFavoritesFilter() {
+        // Only allow filtering in contacts tab
+        const newContactsTab = document.getElementById('chatNewContactsTab');
+        const isNewContactsView = newContactsTab && newContactsTab.classList.contains('active');
+        if (isNewContactsView) {
+            return; // Don't filter in new contacts view
+        }
+        
+        showFavoritesOnly = !showFavoritesOnly;
+        const favoritesFilterBtn = document.getElementById('chatFavoritesFilterBtn');
+        if (favoritesFilterBtn) {
+            if (showFavoritesOnly) {
+                favoritesFilterBtn.classList.add('active');
+            } else {
+                favoritesFilterBtn.classList.remove('active');
+            }
+        }
+        
+        // Re-apply search if there's a query, otherwise just filter by favorites
+        const searchInput = document.getElementById('chatSearchInput');
+        if (searchInput && searchInput.value.trim() !== '') {
+            // If there's a search query, re-apply search (which will also apply favorites filter)
+            await handleSearch({ target: searchInput });
+        } else {
+            // Just filter by favorites
+            if (showFavoritesOnly) {
+                const filtered = contactsCache.filter(contact => contact.is_favorite === true);
+                await displayContacts(filtered, true);
+            } else {
+                await displayContacts(contactsCache, true);
+            }
+        }
+    }
+    
+    async function toggleArchivedFavoritesFilter() {
+        showArchivedFavoritesOnly = !showArchivedFavoritesOnly;
+        const archivedFavoritesFilterBtn = document.getElementById('chatArchivedFavoritesFilterBtn');
+        if (archivedFavoritesFilterBtn) {
+            if (showArchivedFavoritesOnly) {
+                archivedFavoritesFilterBtn.classList.add('active');
+            } else {
+                archivedFavoritesFilterBtn.classList.remove('active');
+            }
+        }
+        
+        // Re-apply search if there's a query, otherwise just filter by favorites
+        const searchInput = document.getElementById('chatSearchInput');
+        if (searchInput && searchInput.value.trim() !== '') {
+            // If there's a search query, re-apply search (which will also apply favorites filter)
+            await handleSearch({ target: searchInput });
+        } else {
+            // Just filter by favorites
+            if (showArchivedFavoritesOnly) {
+                const filtered = archivedContactsCache.filter(contact => contact.is_favorite === true);
+                await displayArchivedContacts(filtered, true);
+            } else {
+                await displayArchivedContacts(archivedContactsCache, true);
+            }
+        }
+    }
+    
+    // Toggle favorite for current contact
+    async function toggleFavorite() {
+        // Only allow favoriting existing contacts (with chat_id)
+        if (!currentContactId || !currentChatId) {
+            console.log('Cannot favorite: currentContactId =', currentContactId, 'currentChatId =', currentChatId);
+            return;
+        }
+        
+        // Deaktiviere Button während der Verarbeitung
+        const favoriteBtn = document.getElementById('chatFavoriteBtn');
+        const favoriteBtnMobile = document.getElementById('chatFavoriteBtnMobile');
+        const activeBtn = favoriteBtnMobile || favoriteBtn;
+        
+        if (activeBtn) {
+            activeBtn.disabled = true;
+        }
+        
+        try {
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const formData = new URLSearchParams();
+            formData.append('contact_user_id', currentContactId);
+            
+            const response = await fetch(basePath + 'api/toggle-favorite.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
+            
+            if (data.success) {
+                currentContactIsFavorite = data.is_favorite;
+                
+                // Update button state
+                if (favoriteBtn) {
+                    if (data.is_favorite) {
+                        favoriteBtn.classList.add('active');
+                    } else {
+                        favoriteBtn.classList.remove('active');
+                    }
+                }
+                
+                if (favoriteBtnMobile) {
+                    if (data.is_favorite) {
+                        favoriteBtnMobile.classList.add('active');
+                    } else {
+                        favoriteBtnMobile.classList.remove('active');
+                    }
+                }
+                
+                // Reload contacts to update favorite status
+                await loadContacts(true);
+                
+                // Update contact in cache (both contacts and archived)
+                const contactIndex = contactsCache.findIndex(c => c.user_id === currentContactId);
+                if (contactIndex !== -1) {
+                    contactsCache[contactIndex].is_favorite = data.is_favorite;
+                }
+                
+                // Also update in archived cache
+                const archivedIndex = archivedContactsCache.findIndex(c => c.user_id === currentContactId);
+                if (archivedIndex !== -1) {
+                    archivedContactsCache[archivedIndex].is_favorite = data.is_favorite;
+                }
+                
+                // Re-display contacts to update the list with new favorite status and re-sort
+                // Check which tab is active
+                const archivedTab = document.getElementById('chatArchivedTab');
+                const isArchivedView = archivedTab && archivedTab.classList.contains('active');
+                
+                if (isArchivedView) {
+                    // Update archived contacts list
+                    await displayArchivedContacts(archivedContactsCache, true);
+                } else {
+                    // Update regular contacts list
+                    const searchInput = document.getElementById('chatSearchInput');
+                    if (searchInput && searchInput.value.trim() !== '') {
+                        // If there's a search query, re-apply search
+                        handleSearch({ target: searchInput });
+                    } else if (showFavoritesOnly) {
+                        // If favorites filter is active, show only favorites
+                        const filtered = contactsCache.filter(contact => contact.is_favorite === true);
+                        await displayContacts(filtered, true);
+                    } else {
+                        // Otherwise, refresh the entire list (will be sorted with favorites first)
+                        await displayContacts(contactsCache, true);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Fehler beim Favorisieren:', error);
+            alert('Fehler beim Favorisieren. Bitte versuchen Sie es erneut.');
+        } finally {
+            // Reaktiviere Button
+            if (activeBtn) {
+                activeBtn.disabled = false;
+            }
+        }
+    }
+    
+    // Show context menu for contact items
+    // Initialize context menu handlers (only called once)
+    function initContextMenuHandlers() {
+        // Prevent multiple initializations
+        if (window.chatContextMenuInitialized) return;
+        window.chatContextMenuInitialized = true;
+        
+        const contextMenu = document.getElementById('chatContextMenu');
+        if (!contextMenu) return;
+        
+        const contextArchive = document.getElementById('chatContextArchive');
+        const contextDelete = document.getElementById('chatContextDelete');
+        
+        // Archive button handler
+        if (contextArchive) {
+            contextArchive.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                hideContextMenu();
+                // Small delay to ensure menu is closed
+                setTimeout(() => {
+                    handleArchiveChat();
+                }, 0);
+            });
+        }
+        
+        // Delete/Remove button handler
+        if (contextDelete) {
+            contextDelete.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                hideContextMenu();
+                // Small delay to ensure menu is closed
+                setTimeout(() => {
+                    showRemoveConfirmModal();
+                }, 0);
+            });
+        }
+        
+        // Hide context menu when clicking outside
+        const handleClickOutside = function(e) {
+            if (contextMenu && contextMenu.style.display === 'block') {
+                // Check if click is outside the menu
+                if (!contextMenu.contains(e.target)) {
+                    // Always hide when clicking outside, regardless of what was clicked
+                    hideContextMenu();
+                }
+            }
+        };
+        
+        // Hide context menu on right-click outside
+        const handleRightClickOutside = function(e) {
+            if (contextMenu && contextMenu.style.display === 'block') {
+                if (!contextMenu.contains(e.target)) {
+                    hideContextMenu();
+                }
+            }
+        };
+        
+        // Hide context menu on ESC key
+        const handleEscapeKey = function(e) {
+            if (e.key === 'Escape' && contextMenu && contextMenu.style.display === 'block') {
+                hideContextMenu();
+            }
+        };
+        
+        // Hide context menu on scroll
+        const handleScroll = function() {
+            if (contextMenu && contextMenu.style.display === 'block') {
+                hideContextMenu();
+            }
+        };
+        
+        // Add event listeners
+        document.addEventListener('click', handleClickOutside, true);
+        document.addEventListener('contextmenu', handleRightClickOutside, true);
+        document.addEventListener('keydown', handleEscapeKey);
+        
+        const contactsList = document.getElementById('chatContactsList');
+        if (contactsList) {
+            contactsList.addEventListener('scroll', handleScroll);
+        }
+        
+        const archivedList = document.getElementById('chatArchivedContactsList');
+        if (archivedList) {
+            archivedList.addEventListener('scroll', handleScroll);
+        }
+        
+        // Store handlers for potential cleanup
+        contextMenu._handlers = {
+            click: handleClickOutside,
+            contextmenu: handleRightClickOutside,
+            keydown: handleEscapeKey,
+            scroll: handleScroll
+        };
+    }
+    
+    function showContactContextMenu(e, chatId, item) {
+        const contextMenu = document.getElementById('chatContextMenu');
+        if (!contextMenu) return;
+        
+        // First, hide any existing menu
+        hideContextMenu();
+        
+        // Prevent default context menu
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+        
+        contextMenuChatId = chatId;
+        contextMenuItem = item;
+        
+        const archiveBtn = contextMenu.querySelector('#chatContextArchive');
+        const isArchived = item.dataset.isArchived === '1';
+        
+        if (archiveBtn) {
+            const archiveText = archiveBtn.querySelector('span');
+            if (archiveText) {
+                archiveText.textContent = isArchived ? 'Entarchivieren' : 'Archivieren';
+            }
+        }
+        
+        // Position menu
+        const x = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+        const y = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+            
+            // Adjust if menu goes off screen
+            setTimeout(() => {
+                const rect = contextMenu.getBoundingClientRect();
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                if (rect.right > windowWidth) {
+                    contextMenu.style.left = (x - rect.width) + 'px';
+                }
+                if (rect.bottom > windowHeight) {
+                    contextMenu.style.top = (y - rect.height) + 'px';
+                }
+            }, 0);
+            
+            // Close any other open context menus
+            const allContextMenus = document.querySelectorAll('.chat-context-menu');
+            allContextMenus.forEach(menu => {
+                if (menu !== contextMenu && menu.style.display === 'block') {
+                    menu.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Hide context menu
+    function hideContextMenu() {
+        const contextMenu = document.getElementById('chatContextMenu');
+        if (contextMenu) {
+            // Immediately hide the menu
+            contextMenu.style.display = 'none';
+            contextMenu.style.left = '';
+            contextMenu.style.top = '';
+        }
+        contextMenuChatId = null;
+        contextMenuItem = null;
+    }
+    
+    // Handle archive chat
+    async function handleArchiveChat() {
+        if (!contextMenuChatId) return;
+        
+        const isArchived = contextMenuItem && contextMenuItem.dataset.isArchived === '1';
+        
+        try {
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const formData = new URLSearchParams();
+            formData.append('chat_id', contextMenuChatId);
+            formData.append('archive', isArchived ? '0' : '1');
+            
+            const response = await fetch(basePath + 'api/archive-chat.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
+            
+            if (data.success) {
+                // Ensure menu is closed
+                hideContextMenu();
+                
+                // Preserve mobile header title if in contacts view
+                const mobileHeaderTitle = document.querySelector('.chat-mobile-header-title');
+                const preservedTitle = mobileHeaderTitle ? mobileHeaderTitle.textContent : null;
+                
+                // Reload contacts to reflect changes
+                await loadContacts(true);
+                
+                // Restore mobile header title if it was changed
+                if (preservedTitle && mobileHeaderTitle && mobileHeaderTitle.textContent !== preservedTitle) {
+                    mobileHeaderTitle.textContent = preservedTitle;
+                }
+                
+                // Reload archived contacts if in archived view
+                const archivedTab = document.getElementById('chatArchivedTab');
+                if (archivedTab && archivedTab.classList.contains('active')) {
+                    await loadArchivedContacts(true);
+                }
+                // Check if archived tab should be shown/hidden
+                await checkArchivedTabVisibility();
+                
+                // If this was the current chat, close it
+                if (currentChatId && parseInt(currentChatId) === contextMenuChatId) {
+                    // Close chat view
+                    const chatEmptyState = document.getElementById('chatEmptyState');
+                    const chatMessagesHeader = document.getElementById('chatMessagesHeader');
+                    const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+                    const chatInputContainer = document.getElementById('chatInputContainer');
+                    
+                    if (chatEmptyState) chatEmptyState.style.display = 'flex';
+                    if (chatMessagesHeader) chatMessagesHeader.style.display = 'none';
+                    if (chatMessagesContainer) chatMessagesContainer.style.display = 'none';
+                    if (chatInputContainer) chatInputContainer.style.display = 'none';
+                    
+                    currentChatId = null;
+                    currentContactId = null;
+                }
+            } else {
+                alert('Fehler beim Archivieren: ' + (data.message || 'Unbekannter Fehler'));
+            }
+        } catch (error) {
+            console.error('Fehler beim Archivieren:', error);
+            alert('Fehler beim Archivieren: ' + (error.message || 'Unbekannter Fehler'));
+        }
+    }
+    
+    // Show remove confirmation modal
+    function showRemoveConfirmModal() {
+        const modal = document.getElementById('chatRemoveConfirmModal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+    
+    // Hide remove confirmation modal
+    function hideRemoveConfirmModal() {
+        const modal = document.getElementById('chatRemoveConfirmModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    // Handle remove chat (visual only, archives the chat)
+    async function handleRemoveChat() {
+        if (!contextMenuChatId) return;
+        
+        try {
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const formData = new URLSearchParams();
+            formData.append('chat_id', contextMenuChatId);
+            formData.append('archive', '1'); // Archive instead of delete
+            
+            const response = await fetch(basePath + 'api/archive-chat.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
+            
+            if (data.success) {
+                // Preserve mobile header title if in contacts view
+                const mobileHeaderTitle = document.querySelector('.chat-mobile-header-title');
+                const preservedTitle = mobileHeaderTitle ? mobileHeaderTitle.textContent : null;
+                
+                // Remove from cache immediately for visual removal
+                contactsCache = contactsCache.filter(c => c.chat_id !== contextMenuChatId);
+                
+                // Remove from DOM immediately
+                const contactItem = document.querySelector(`[data-chat-id="${contextMenuChatId}"]`);
+                if (contactItem) {
+                    contactItem.remove();
+                }
+                
+                // Reload contacts to reflect changes
+                await loadContacts(true);
+                
+                // Restore mobile header title if it was changed
+                if (preservedTitle && mobileHeaderTitle && mobileHeaderTitle.textContent !== preservedTitle) {
+                    mobileHeaderTitle.textContent = preservedTitle;
+                }
+                
+                // Reload archived contacts if in archived view
+                const archivedTab = document.getElementById('chatArchivedTab');
+                if (archivedTab && archivedTab.classList.contains('active')) {
+                    await loadArchivedContacts(true);
+                }
+                // Check if archived tab should be shown/hidden
+                await checkArchivedTabVisibility();
+                
+                // If this was the current chat, close it
+                if (currentChatId && parseInt(currentChatId) === contextMenuChatId) {
+                    // Close chat view
+                    const chatEmptyState = document.getElementById('chatEmptyState');
+                    const chatMessagesHeader = document.getElementById('chatMessagesHeader');
+                    const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+                    const chatInputContainer = document.getElementById('chatInputContainer');
+                    
+                    if (chatEmptyState) chatEmptyState.style.display = 'flex';
+                    if (chatMessagesHeader) chatMessagesHeader.style.display = 'none';
+                    if (chatMessagesContainer) chatMessagesContainer.style.display = 'none';
+                    if (chatInputContainer) chatInputContainer.style.display = 'none';
+                    
+                    currentChatId = null;
+                    currentContactId = null;
+                }
+            } else {
+                alert('Fehler beim Entfernen: ' + (data.message || 'Unbekannter Fehler'));
+            }
+        } catch (error) {
+            console.error('Fehler beim Entfernen:', error);
+            alert('Fehler beim Entfernen: ' + (error.message || 'Unbekannter Fehler'));
         }
     }
     
@@ -542,6 +1253,16 @@
         hasMore: true,
         total: 0
     };
+    
+    let archivedContactsState = {
+        offset: 0,
+        limit: 50,
+        loading: false,
+        hasMore: true,
+        total: 0
+    };
+    
+    let archivedContactsCache = [];
     
     // Load new contacts (uncontacted users) with infinite scroll
     async function loadNewContacts(reset = false) {
@@ -565,7 +1286,25 @@
         try {
             const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
             const response = await fetch(basePath + `api/get-uncontacted-users.php?limit=${newContactsState.limit}&offset=${newContactsState.offset}`);
-            const data = await response.json();
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
             
             if (data.success) {
                 const contacts = data.contacts || [];
@@ -604,21 +1343,22 @@
                 });
                 
                 // Append or replace contacts - don't set active in HTML, will be set by restore logic
+                // Note: No status indicator for new contacts (only for existing contacts)
                 const contactsHTML = uniqueContacts.map(contact => {
-                    const status = contact.status || 'offline';
-                    const statusClass = `chat-status-indicator chat-status-${status}`;
-                    const statusTitle = status === 'online' ? 'Online' : status === 'away' ? 'Abwesend' : 'Offline';
                     return `
                         <div class="chat-new-contact-item" data-user-id="${contact.user_id}" data-username="${escapeHtml(contact.username)}">
                             <div class="chat-new-contact-avatar-wrapper">
-                            <img class="chat-new-contact-avatar" 
-                                 src="${escapeHtml(contact.avatar || (typeof getBasePath === 'function' ? getBasePath() : '') + 'assets/images/profile-placeholder.svg')}" 
-                                 alt="${escapeHtml(contact.name || contact.username || '')}">
-                                <span class="${statusClass}" title="${statusTitle}"></span>
+                                <img class="chat-new-contact-avatar" 
+                                     src="${escapeHtml(contact.avatar || (typeof getBasePath === 'function' ? getBasePath() : '') + 'assets/images/profile-placeholder.svg')}" 
+                                     alt="${escapeHtml(contact.name || contact.username || '')}">
                             </div>
                             <div class="chat-new-contact-info">
                                 <h4 class="chat-new-contact-name">${escapeHtml(contact.name || contact.username || 'Unbekannt')}</h4>
+                                <div class="chat-new-contact-status">Keine Nachrichten</div>
                             </div>
+                            <button class="chat-new-contact-add-btn" data-user-id="${contact.user_id}" data-username="${escapeHtml(contact.username)}" title="Zu Kontakten hinzufügen">
+                                👋
+                            </button>
                         </div>
                     `;
                 }).join('');
@@ -640,9 +1380,38 @@
                     if (item.dataset.hasHandler === 'true') return;
                     item.dataset.hasHandler = 'true';
                     
-                    item.addEventListener('click', async function() {
+                    // Add button click handler (separate from item click)
+                    const addBtn = item.querySelector('.chat-new-contact-add-btn');
+                    if (addBtn) {
+                        addBtn.addEventListener('click', async function(e) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            
+                            const userId = parseInt(this.dataset.userId);
+                            const username = this.dataset.username || 'Unbekannt';
+                            
+                            if (!userId || isNaN(userId)) {
+                                console.error('Invalid userId:', this.dataset.userId);
+                                return;
+                            }
+                            
+                            // Add contact to contacts tab by creating a chat and sending a message
+                            await addContactToContacts(userId, username, item);
+                        });
+                    }
+                    
+                    item.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        
                         const userId = parseInt(this.dataset.userId);
                         const username = this.dataset.username;
+                        
+                        // Validate inputs
+                        if (!userId || isNaN(userId)) {
+                            console.error('Invalid userId:', this.dataset.userId);
+                            return;
+                        }
                         
                         // Remove active from ALL contacts (both tabs) first
                         document.querySelectorAll('.chat-new-contact-item, .chat-contact-item').forEach(contactItem => {
@@ -652,7 +1421,7 @@
                         // Mark ONLY this contact as active
                         this.classList.add('active');
                         
-                        // Create or open chat - contact stays in "neue kontakte"
+                        // Always create or open chat - contact stays in "neue kontakte"
                         // The contact will only be removed from "neue kontakte" when a message is sent
                         // and will only appear in "kontakte" after at least one message exists
                         await createNewChat(userId, username, false);
@@ -735,7 +1504,25 @@
         try {
             const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
             const response = await fetch(basePath + `api/search-chat-contacts.php?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
             
             if (data.success) {
                 const contacts = data.contacts || [];
@@ -766,13 +1553,22 @@
                 
                 // Add click handlers
                 newContactsList.querySelectorAll('.chat-new-contact-item').forEach(item => {
-                    item.addEventListener('click', async function() {
+                    // Skip if already has handler
+                    if (item.dataset.hasHandler === 'true') return;
+                    item.dataset.hasHandler = 'true';
+                    
+                    item.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        
                         const userId = parseInt(this.dataset.userId);
                         const username = this.dataset.username;
                         
-                        // Allow user to always click on any contact, even if it's the same one
-                        // The openChat function will handle whether to actually reload or not
-                        // This allows A -> B -> A switching without blocking
+                        // Validate inputs
+                        if (!userId || isNaN(userId)) {
+                            console.error('Invalid userId:', this.dataset.userId);
+                            return;
+                        }
                         
                         // Remove active from ALL contacts (both tabs) first
                         document.querySelectorAll('.chat-new-contact-item, .chat-contact-item').forEach(contactItem => {
@@ -782,7 +1578,7 @@
                         // Mark ONLY this contact as active
                         this.classList.add('active');
                         
-                        // Create or open chat - contact stays in "neue kontakte"
+                        // Always create or open chat - contact stays in "neue kontakte"
                         // The contact will only be removed from "neue kontakte" when a message is sent
                         // and will only appear in "kontakte" after at least one message exists
                         await createNewChat(userId, username, false);
@@ -840,7 +1636,25 @@
         try {
             const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
             const response = await fetch(basePath + `api/get-chat-contacts.php?limit=${contactsState.limit}&offset=${contactsState.offset}`);
-            const data = await response.json();
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
             
             if (data.success) {
                 const newContacts = data.contacts || [];
@@ -906,6 +1720,8 @@
                 contactsState.offset += newContacts.length;
                 
                 await displayContacts(contactsCache, reset);
+                // Check archived tab visibility after loading contacts
+                await checkArchivedTabVisibility();
             } else {
                 console.error('Fehler beim Laden der Kontakte:', data.message);
                 if (reset) {
@@ -951,6 +1767,551 @@
         contactsList.addEventListener('scroll', contactsList._scrollHandler);
     }
     
+    // Load archived contacts
+    async function loadArchivedContacts(reset = false) {
+        const archivedList = document.getElementById('chatArchivedContactsList');
+        if (!archivedList) return;
+        
+        // Reset state if needed
+        if (reset) {
+            archivedContactsState.offset = 0;
+            archivedContactsState.hasMore = true;
+            archivedContactsCache = [];
+            archivedList.innerHTML = '<div class="chat-loading">Lade archivierte Kontakte...</div>';
+        }
+        
+        // Don't load if already loading or no more data
+        if (archivedContactsState.loading || !archivedContactsState.hasMore) {
+            return;
+        }
+        
+        archivedContactsState.loading = true;
+        
+        try {
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const response = await fetch(basePath + `api/get-archived-contacts.php?limit=${archivedContactsState.limit}&offset=${archivedContactsState.offset}`);
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
+            
+            if (data.success) {
+                const newContacts = data.contacts || [];
+                archivedContactsState.total = data.total || 0;
+                
+                // Check if there are more contacts
+                archivedContactsState.hasMore = (archivedContactsState.offset + newContacts.length) < archivedContactsState.total;
+                
+                // Store participant IDs for each contact and current user ID
+                if (data.current_user_id) {
+                    currentUserId = parseInt(data.current_user_id);
+                }
+                if (newContacts && Array.isArray(newContacts)) {
+                    newContacts.forEach(contact => {
+                        if (contact.participant_ids && Array.isArray(contact.participant_ids) && contact.participant_ids.length >= 2) {
+                            const chatId = parseInt(contact.chat_id);
+                            if (chatId) {
+                                chatParticipants.set(chatId, contact.participant_ids);
+                            }
+                        }
+                    });
+                }
+                
+                // Get existing chat IDs to avoid duplicates when appending
+                const existingChatIds = new Set();
+                if (!reset) {
+                    archivedContactsCache.forEach(contact => {
+                        const chatId = contact.chat_id ? parseInt(contact.chat_id) : null;
+                        if (chatId) {
+                            existingChatIds.add(chatId);
+                        }
+                    });
+                }
+                
+                // Filter out duplicates
+                const uniqueNewContacts = reset ? newContacts : newContacts.filter(contact => {
+                    const chatId = contact.chat_id ? parseInt(contact.chat_id) : null;
+                    return !chatId || !existingChatIds.has(chatId);
+                });
+                
+                // Add to cache
+                if (reset) {
+                    archivedContactsCache = uniqueNewContacts;
+                } else {
+                    const cacheChatIds = new Set();
+                    archivedContactsCache.forEach(c => {
+                        const chatId = c.chat_id ? parseInt(c.chat_id) : null;
+                        if (chatId) {
+                            cacheChatIds.add(chatId);
+                        }
+                    });
+                    
+                    const trulyUniqueNewContacts = uniqueNewContacts.filter(contact => {
+                        const chatId = contact.chat_id ? parseInt(contact.chat_id) : null;
+                        return !chatId || !cacheChatIds.has(chatId);
+                    });
+                    archivedContactsCache = [...archivedContactsCache, ...trulyUniqueNewContacts];
+                }
+                
+                // Update offset
+                archivedContactsState.offset += newContacts.length;
+                
+                await displayArchivedContacts(archivedContactsCache, reset);
+            } else {
+                console.error('Fehler beim Laden der archivierten Kontakte:', data.message);
+                if (reset) {
+                    archivedList.innerHTML = '<div class="chat-empty-contacts">Fehler beim Laden der archivierten Kontakte</div>';
+                }
+            }
+        } catch (error) {
+            console.error('Fehler:', error);
+            if (reset) {
+                archivedList.innerHTML = '<div class="chat-empty-contacts">Fehler beim Laden der archivierten Kontakte</div>';
+            }
+        } finally {
+            archivedContactsState.loading = false;
+        }
+    }
+    
+    // Display archived contacts (same structure as displayContacts)
+    async function displayArchivedContacts(contacts, reset = false) {
+        const archivedList = document.getElementById('chatArchivedContactsList');
+        if (!archivedList) return;
+        
+        if (reset && contacts.length === 0) {
+            archivedList.innerHTML = '<div class="chat-empty-contacts">Keine archivierten Kontakte gefunden</div>';
+            return;
+        }
+        
+        // Remove loading indicator if exists
+        const loadingIndicator = archivedList.querySelector('.chat-loading-more');
+        if (loadingIndicator) {
+            loadingIndicator.remove();
+        }
+        
+        // Filter out duplicates by chat_id (same as displayContacts)
+        const seenChatIds = new Set();
+        const uniqueContacts = contacts.filter(contact => {
+            const chatId = contact.chat_id ? parseInt(contact.chat_id) : null;
+            if (!chatId) return true; // Include contacts without chat_id
+            if (seenChatIds.has(chatId)) {
+                return false; // Duplicate, skip
+            }
+            seenChatIds.add(chatId);
+            return true;
+        });
+        
+        // Sort: favorites first, then by last_message_at (same as displayContacts)
+        uniqueContacts.sort((a, b) => {
+            const aIsFavorite = a.is_favorite || false;
+            const bIsFavorite = b.is_favorite || false;
+            if (aIsFavorite && !bIsFavorite) return -1;
+            if (!aIsFavorite && bIsFavorite) return 1;
+            
+            const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+            const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+            return bTime - aTime;
+        });
+        
+        // Process contacts with async decryption (same as displayContacts)
+        const contactPromises = uniqueContacts.map(async (contact) => {
+            const unreadBadge = contact.unread_count > 0 
+                ? `<span class="chat-contact-badge">${contact.unread_count}</span>` 
+                : '';
+            
+            const lastMessageTime = contact.last_message_at 
+                ? formatTime(contact.last_message_at) 
+                : '';
+            
+            // No decryption - use message as-is
+            let lastMessageText = contact.last_message || '';
+            
+            return { contact, unreadBadge, lastMessageTime, lastMessageText };
+        });
+        
+        const processedContacts = await Promise.all(contactPromises);
+        
+        // If no contacts to add and not resetting, don't modify the DOM
+        if (processedContacts.length === 0 && !reset) {
+            // Remove loading indicator if exists
+            const loadingEl = contactsList.querySelector('.chat-loading');
+            if (loadingEl) {
+                loadingEl.remove();
+            }
+            return;
+        }
+        
+        // Build HTML using same structure as displayContacts
+        const contactsHTML = processedContacts.map(({ contact, unreadBadge, lastMessageTime, lastMessageText }) => {
+            // Check if last message has files (same logic as displayContacts)
+            let hasFiles = false;
+            let fileCount = 0;
+            let fileType = null;
+            let isGif = false;
+            let hasText = false;
+            
+            if (lastMessageText && (lastMessageText.startsWith('[') || lastMessageText.startsWith('{'))) {
+                try {
+                    const parsed = JSON.parse(lastMessageText);
+                    if (Array.isArray(parsed)) {
+                        hasFiles = true;
+                        fileCount = parsed.length;
+                        if (parsed.length > 0) {
+                            const allGifs = parsed.every(img => img.mime && img.mime === 'image/gif');
+                            if (allGifs) {
+                                isGif = true;
+                                fileType = 'gif';
+                            } else {
+                                fileType = 'image';
+                            }
+                        } else {
+                            fileType = 'image';
+                        }
+                        if (parsed.text && parsed.text.trim()) {
+                            hasText = true;
+                            lastMessageText = parsed.text;
+                        } else {
+                            lastMessageText = '';
+                        }
+                    } else if (parsed && typeof parsed === 'object' && parsed.images) {
+                        hasFiles = true;
+                        fileCount = Array.isArray(parsed.images) ? parsed.images.length : 0;
+                        if (parsed.images.length > 0 && Array.isArray(parsed.images)) {
+                            const allGifs = parsed.images.every(img => img.mime && img.mime === 'image/gif');
+                            if (allGifs) {
+                                isGif = true;
+                                fileType = 'gif';
+                            } else {
+                                fileType = 'image';
+                            }
+                        } else {
+                            fileType = 'image';
+                        }
+                        if (parsed.text && parsed.text.trim()) {
+                            hasText = true;
+                            lastMessageText = parsed.text;
+                        } else {
+                            lastMessageText = '';
+                        }
+                    }
+                } catch (e) {
+                    hasText = true;
+                }
+            } else if (contact.last_message_file_type) {
+                hasFiles = true;
+                fileType = contact.last_message_file_type;
+                
+                if (contact.last_message_file_type === 'multiple' && contact.last_message_file_path) {
+                    try {
+                        const parsed = JSON.parse(contact.last_message_file_path);
+                        if (Array.isArray(parsed)) {
+                            fileCount = parsed.length;
+                            const allGifs = parsed.every(file => 
+                                (file.path && file.path.toLowerCase().endsWith('.gif')) || 
+                                (file.mime && file.mime === 'image/gif')
+                            );
+                            if (allGifs) {
+                                isGif = true;
+                                fileType = 'gif';
+                            }
+                        } else {
+                            fileCount = 2;
+                        }
+                    } catch (e) {
+                        fileCount = 2;
+                    }
+                } else {
+                    fileCount = 1;
+                }
+                
+                if (!isGif && contact.last_message_file_path) {
+                    const lowerPath = contact.last_message_file_path.toLowerCase();
+                    if (lowerPath.endsWith('.gif')) {
+                        isGif = true;
+                        fileType = 'gif';
+                    }
+                }
+                
+                if (lastMessageText && lastMessageText.trim() && !lastMessageText.startsWith('data:') && !lastMessageText.startsWith('[') && !lastMessageText.startsWith('{')) {
+                    hasText = true;
+                } else {
+                    lastMessageText = '';
+                }
+            } else if (lastMessageText && lastMessageText.trim() && !lastMessageText.startsWith('data:') && !lastMessageText.startsWith('[') && !lastMessageText.startsWith('{')) {
+                hasText = true;
+            }
+            
+            // Build final message preview (same as displayContacts)
+            let displayText = '';
+            let showPrefix = true;
+            
+            if (hasFiles && !hasText) {
+                showPrefix = false;
+                let fileTypeLabel = '';
+                let iconSvg = '';
+                
+                if (isGif) {
+                    fileTypeLabel = fileCount > 1 ? 'GIFs' : 'GIF';
+                    iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                } else if (fileType === 'image' || fileType === 'multiple') {
+                    fileTypeLabel = (fileType === 'multiple' || fileCount > 1) ? 'Bilder' : 'Bild';
+                    iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                } else if (fileType === 'video') {
+                    fileTypeLabel = fileCount > 1 ? 'Videos' : 'Video';
+                    iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>';
+                }
+                
+                displayText = iconSvg + fileTypeLabel;
+            } else if (hasFiles && hasText) {
+                let fileIndicator = '';
+                if (isGif) {
+                    fileIndicator = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                } else if (fileType === 'image' || fileType === 'multiple') {
+                    fileIndicator = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                } else if (fileType === 'video') {
+                    fileIndicator = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>';
+                }
+                displayText = fileIndicator + escapeHtml(lastMessageText);
+                showPrefix = true;
+            } else if (hasText && lastMessageText && lastMessageText.trim()) {
+                displayText = escapeHtml(lastMessageText);
+                showPrefix = true;
+            } else {
+                displayText = 'Keine Nachrichten';
+                showPrefix = false;
+            }
+            
+            // Add prefix based on who sent the last message (same as displayContacts)
+            let lastMessagePreview = displayText;
+            if (showPrefix && (contact.last_message || contact.last_message_file_type)) {
+                if (contact.is_last_message_from_me) {
+                    lastMessagePreview = '<strong>Du:</strong> ' + displayText;
+                } else {
+                    const contactName = (contact.name || contact.username || 'Unbekannt').split(' ')[0];
+                    lastMessagePreview = '<strong>' + escapeHtml(contactName) + ':</strong> ' + displayText;
+                }
+            }
+            
+            const status = contact.status || 'offline';
+            const statusClass = `chat-status-indicator chat-status-${status}`;
+            const statusTitle = status === 'online' ? 'Online' : status === 'away' ? 'Abwesend' : 'Offline';
+            
+            const isFavorite = contact.is_favorite || false;
+            const favoriteClass = isFavorite ? 'favorite' : '';
+            const favoriteStar = isFavorite ? '<svg class="chat-contact-favorite-star" width="18" height="18" viewBox="0 0 24 24" fill="#ffc107" stroke="#ffc107" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>' : '';
+            
+            return `
+                <div class="chat-contact-item ${favoriteClass}" 
+                     data-chat-id="${contact.chat_id || ''}" 
+                     data-user-id="${contact.user_id}"
+                     data-username="${escapeHtml(contact.username || '')}"
+                     data-is-favorite="${isFavorite ? '1' : '0'}"
+                     data-is-archived="1">
+                    <div class="chat-contact-avatar-wrapper">
+                        <img class="chat-contact-avatar" 
+                             src="${escapeHtml(contact.avatar || (typeof getBasePath === 'function' ? getBasePath() : '') + 'assets/images/profile-placeholder.svg')}" 
+                             alt="${escapeHtml(contact.name || contact.username || '')}">
+                        <span class="${statusClass}" title="${statusTitle}"></span>
+                    </div>
+                    <div class="chat-contact-info">
+                        <div class="chat-contact-header">
+                            <h4 class="chat-contact-name">${escapeHtml(contact.name || contact.username || 'Unbekannt')}</h4>
+                            <div class="chat-contact-header-right">
+                                ${lastMessageTime ? `<span class="chat-contact-time">${lastMessageTime}</span>` : ''}
+                                ${favoriteStar}
+                            </div>
+                        </div>
+                        <div class="chat-contact-preview">${lastMessagePreview}</div>
+                    </div>
+                    ${unreadBadge}
+                </div>
+            `;
+        }).join('');
+        
+        // Append or replace HTML (same as displayContacts)
+        if (reset) {
+            archivedList.innerHTML = contactsHTML;
+        } else {
+            if (contactsHTML) {
+                const existingHTML = archivedList.innerHTML.replace('<div class="chat-loading-more">Lade weitere Kontakte...</div>', '');
+                archivedList.innerHTML = existingHTML + contactsHTML;
+            }
+        }
+        
+        // Add click handlers to items (same as displayContacts)
+        archivedList.querySelectorAll('.chat-contact-item').forEach(item => {
+            if (item.dataset.hasHandler === 'true') return;
+            item.dataset.hasHandler = 'true';
+            
+            // Right-click handler for context menu (desktop)
+            item.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const chatIdStr = this.dataset.chatId;
+                const chatId = chatIdStr && chatIdStr !== 'null' && chatIdStr !== 'undefined' ? parseInt(chatIdStr) : null;
+                
+                if (chatId && !isNaN(chatId) && chatId > 0) {
+                    setTimeout(() => {
+                        showContactContextMenu(e, chatId, this);
+                    }, 10);
+                }
+            });
+            
+            // Long press handler for context menu (mobile)
+            let longPressTimer = null;
+            let longPressStartX = 0;
+            let longPressStartY = 0;
+            let longPressTriggered = false;
+            
+            item.addEventListener('touchstart', function(e) {
+                const chatIdStr = this.dataset.chatId;
+                const chatId = chatIdStr && chatIdStr !== 'null' && chatIdStr !== 'undefined' ? parseInt(chatIdStr) : null;
+                
+                if (chatId && !isNaN(chatId) && chatId > 0) {
+                    longPressTriggered = false;
+                    const touch = e.touches[0];
+                    longPressStartX = touch.clientX;
+                    longPressStartY = touch.clientY;
+                    
+                    longPressTimer = setTimeout(() => {
+                        longPressTriggered = true;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const syntheticEvent = {
+                            clientX: touch.clientX,
+                            clientY: touch.clientY,
+                            preventDefault: () => {},
+                            stopPropagation: () => {}
+                        };
+                        
+                        showContactContextMenu(syntheticEvent, chatId, this);
+                        longPressTimer = null;
+                    }, 500);
+                }
+            });
+            
+            item.addEventListener('touchend', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            });
+            
+            item.addEventListener('touchmove', function(e) {
+                if (longPressTimer) {
+                    const touch = e.touches[0];
+                    const deltaX = Math.abs(touch.clientX - longPressStartX);
+                    const deltaY = Math.abs(touch.clientY - longPressStartY);
+                    
+                    if (deltaX > 10 || deltaY > 10) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                }
+            });
+            
+            item.addEventListener('click', async function(e) {
+                const contextMenu = document.getElementById('chatContextMenu');
+                if (contextMenu && contextMenu.contains(e.target)) {
+                    return;
+                }
+                
+                e.stopPropagation();
+                e.preventDefault();
+                
+                hideContextMenu();
+                
+                const chatIdStr = this.dataset.chatId;
+                const chatId = chatIdStr && chatIdStr !== 'null' && chatIdStr !== 'undefined' ? parseInt(chatIdStr) : null;
+                const userId = parseInt(this.dataset.userId);
+                const username = this.dataset.username || 'Unbekannt';
+                
+                if (chatId && !isNaN(chatId) && chatId > 0) {
+                    await openChat(chatId, userId, username);
+                }
+            });
+        });
+        
+        // Setup scroll handler if not already set
+        if (!archivedList._scrollHandler) {
+            archivedList._scrollHandler = function() {
+                const scrollTop = this.scrollTop;
+                const scrollHeight = this.scrollHeight;
+                const clientHeight = this.clientHeight;
+                
+                if (scrollHeight - scrollTop - clientHeight < 100 && archivedContactsState.hasMore && !archivedContactsState.loading) {
+                    const loadingIndicator = document.createElement('div');
+                    loadingIndicator.className = 'chat-loading-more';
+                    loadingIndicator.textContent = 'Lade weitere Kontakte...';
+                    this.appendChild(loadingIndicator);
+                    
+                    loadArchivedContacts(false);
+                }
+            };
+            
+            archivedList.addEventListener('scroll', archivedList._scrollHandler);
+        }
+    }
+    
+    // Check if archived tab should be visible
+    async function checkArchivedTabVisibility() {
+        const archivedTab = document.getElementById('chatArchivedTab');
+        if (!archivedTab) return;
+        
+        try {
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const response = await fetch(basePath + 'api/get-archived-contacts.php?limit=1&offset=0');
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error! status:', response.status, 'Response:', errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get response text first to check if it's JSON
+            const responseText = await response.text();
+            
+            // Check if response is JSON by trying to parse it
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response. Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON response');
+            }
+            
+            if (data.success && data.total > 0) {
+                archivedTab.style.display = 'flex';
+            } else {
+                archivedTab.style.display = 'none';
+                // If archived tab was active, switch to contacts
+                if (archivedTab.classList.contains('active')) {
+                    switchView('contacts');
+                }
+            }
+        } catch (error) {
+            console.error('Fehler beim Prüfen archivierter Kontakte:', error);
+        }
+    }
+    
     // Display contacts
     async function displayContacts(contacts, reset = false) {
         const contactsList = document.getElementById('chatContactsList');
@@ -961,10 +2322,14 @@
             return;
         }
         
-        // Remove loading indicator if exists
+        // Remove loading indicators if exists
         const loadingIndicator = contactsList.querySelector('.chat-loading-more');
         if (loadingIndicator) {
             loadingIndicator.remove();
+        }
+        const loadingElement = contactsList.querySelector('.chat-loading');
+        if (loadingElement) {
+            loadingElement.remove();
         }
         
         // CRITICAL: Filter out duplicates from contacts array by chat_id
@@ -977,6 +2342,21 @@
             }
             seenChatIds.add(chatId);
             return true;
+        });
+        
+        // Sort all contacts: favorites first, then by last message time
+        // This ensures favorites are always at the top, even when resetting
+        uniqueContacts.sort((a, b) => {
+            // Favorites first
+            const aIsFavorite = a.is_favorite || false;
+            const bIsFavorite = b.is_favorite || false;
+            if (aIsFavorite && !bIsFavorite) return -1;
+            if (!aIsFavorite && bIsFavorite) return 1;
+            
+            // Then by last message time
+            const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+            const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+            return bTime - aTime;
         });
         
         // If appending (reset=false), also check existing DOM elements to avoid duplicates
@@ -1033,8 +2413,8 @@
                         chatParticipants.set(chatId, participantIds);
                     }
                 }
-                // Decrypt the message
-                lastMessageText = await decryptMessage(contact.last_message, true, chatId, participantIds);
+                // No decryption - return message as-is
+                lastMessageText = contact.last_message || '';
             }
             
             return { contact, unreadBadge, lastMessageTime, lastMessageText };
@@ -1218,21 +2598,29 @@
             const statusClass = `chat-status-indicator chat-status-${status}`;
             const statusTitle = status === 'online' ? 'Online' : status === 'away' ? 'Abwesend' : 'Offline';
             
+            const isFavorite = contact.is_favorite || false;
+            const favoriteClass = isFavorite ? 'favorite' : '';
+            const favoriteStar = isFavorite ? '<svg class="chat-contact-favorite-star" width="18" height="18" viewBox="0 0 24 24" fill="#ffc107" stroke="#ffc107" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>' : '';
+            
             return `
-                <div class="chat-contact-item" 
+                <div class="chat-contact-item ${favoriteClass}" 
                      data-chat-id="${contact.chat_id || ''}" 
                      data-user-id="${contact.user_id}"
-                     data-username="${escapeHtml(contact.username || '')}">
+                     data-username="${escapeHtml(contact.username || '')}"
+                     data-is-favorite="${isFavorite ? '1' : '0'}">
                     <div class="chat-contact-avatar-wrapper">
-                    <img class="chat-contact-avatar" 
-                         src="${escapeHtml(contact.avatar || (typeof getBasePath === 'function' ? getBasePath() : '') + 'assets/images/profile-placeholder.svg')}" 
-                         alt="${escapeHtml(contact.name || contact.username || '')}">
+                        <img class="chat-contact-avatar" 
+                             src="${escapeHtml(contact.avatar || (typeof getBasePath === 'function' ? getBasePath() : '') + 'assets/images/profile-placeholder.svg')}" 
+                             alt="${escapeHtml(contact.name || contact.username || '')}">
                         <span class="${statusClass}" title="${statusTitle}"></span>
                     </div>
                     <div class="chat-contact-info">
                         <div class="chat-contact-header">
                             <h4 class="chat-contact-name">${escapeHtml(contact.name || contact.username || 'Unbekannt')}</h4>
-                            <span class="chat-contact-time">${lastMessageTime}</span>
+                            <div class="chat-contact-header-right">
+                                ${lastMessageTime ? `<span class="chat-contact-time">${lastMessageTime}</span>` : ''}
+                                ${favoriteStar}
+                            </div>
                         </div>
                         <div class="chat-contact-preview">${lastMessagePreview}</div>
                     </div>
@@ -1241,15 +2629,34 @@
             `;
         }).join('');
         
+        // Remove loading indicator before displaying (use different variable name to avoid conflict)
+        const loadingEl2 = contactsList.querySelector('.chat-loading');
+        if (loadingEl2) {
+            loadingEl2.remove();
+        }
+        
+        // If no contacts to add and not resetting, don't modify the DOM
+        if (processedContacts.length === 0 && !reset) {
+            return;
+        }
+        
         // Append or replace HTML
         if (reset) {
             // Complete replacement - clear everything first
             // This removes all old elements and their handlers
-            contactsList.innerHTML = contactsHTML;
+            if (contactsHTML && contactsHTML.trim() !== '') {
+                contactsList.innerHTML = contactsHTML;
+            } else {
+                // If no contacts, show empty message
+                contactsList.innerHTML = '<div class="chat-empty-contacts">Keine Kontakte gefunden</div>';
+            }
         } else {
             // Append to existing list, but only if we have contacts to add
-            if (contactsHTML) {
-                const existingHTML = contactsList.innerHTML.replace('<div class="chat-loading-more">Lade weitere Kontakte...</div>', '');
+            if (contactsHTML && contactsHTML.trim() !== '') {
+                // Remove any loading indicators
+                let existingHTML = contactsList.innerHTML;
+                existingHTML = existingHTML.replace('<div class="chat-loading-more">Lade weitere Kontakte...</div>', '');
+                existingHTML = existingHTML.replace('<div class="chat-loading">Lade Kontakte...</div>', '');
                 contactsList.innerHTML = existingHTML + contactsHTML;
             }
         }
@@ -1262,9 +2669,93 @@
             if (item.dataset.hasHandler === 'true') return;
             item.dataset.hasHandler = 'true';
             
+            // Right-click handler for context menu (desktop)
+            item.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const chatIdStr = this.dataset.chatId;
+                const chatId = chatIdStr && chatIdStr !== 'null' && chatIdStr !== 'undefined' ? parseInt(chatIdStr) : null;
+                
+                // Only show context menu for existing contacts with chat_id
+                if (chatId && !isNaN(chatId) && chatId > 0) {
+                    // Small delay to ensure any previous click events are processed
+                    setTimeout(() => {
+                        showContactContextMenu(e, chatId, this);
+                    }, 10);
+                }
+            });
+            
+            // Long press handler for context menu (mobile)
+            let longPressTimer = null;
+            let longPressStartX = 0;
+            let longPressStartY = 0;
+            let longPressTriggered = false;
+            
+            item.addEventListener('touchstart', function(e) {
+                const chatIdStr = this.dataset.chatId;
+                const chatId = chatIdStr && chatIdStr !== 'null' && chatIdStr !== 'undefined' ? parseInt(chatIdStr) : null;
+                
+                // Only enable long press for existing contacts with chat_id
+                if (chatId && !isNaN(chatId) && chatId > 0) {
+                    longPressTriggered = false;
+                    const touch = e.touches[0];
+                    longPressStartX = touch.clientX;
+                    longPressStartY = touch.clientY;
+                    
+                    longPressTimer = setTimeout(() => {
+                        longPressTriggered = true;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Create a synthetic event for positioning
+                        const syntheticEvent = {
+                            clientX: touch.clientX,
+                            clientY: touch.clientY,
+                            preventDefault: () => {},
+                            stopPropagation: () => {}
+                        };
+                        
+                        showContactContextMenu(syntheticEvent, chatId, this);
+                        longPressTimer = null;
+                    }, 500); // 500ms long press
+                }
+            });
+            
+            item.addEventListener('touchend', function(e) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            });
+            
+            item.addEventListener('touchmove', function(e) {
+                if (longPressTimer) {
+                    const touch = e.touches[0];
+                    const deltaX = Math.abs(touch.clientX - longPressStartX);
+                    const deltaY = Math.abs(touch.clientY - longPressStartY);
+                    
+                    // Cancel long press if user moved too much
+                    if (deltaX > 10 || deltaY > 10) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                }
+            });
+            
             item.addEventListener('click', async function(e) {
+                // Prevent click if long press was triggered
+                if (longPressTriggered) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    longPressTriggered = false;
+                    return;
+                }
                 e.stopPropagation();
                 e.preventDefault();
+                
+                // Hide context menu if visible
+                hideContextMenu();
                 
                 const chatIdStr = this.dataset.chatId;
                 const chatId = chatIdStr && chatIdStr !== 'null' && chatIdStr !== 'undefined' ? parseInt(chatIdStr) : null;
@@ -1357,30 +2848,8 @@
             return;
         }
         
-        // Check if clicking on the same chat that's already loaded
-        const previousChatId = currentChatId ? parseInt(currentChatId) : null;
-        const previousContactId = currentContactId ? parseInt(currentContactId) : null;
-        
-        // Only skip if it's exactly the same chat AND contact AND messages are already loaded
-        const isSameChat = (previousChatId === numChatId && previousContactId === numUserId);
-        
-        // Only skip if it's exactly the same chat AND messages are already loaded
-        // But always allow switching to a different chat
-        if (isSameChat) {
-        const messagesContainer = document.getElementById('chatMessages');
-            const hasMessages = messagesContainer && 
-                               messagesContainer.querySelector('.chat-message') !== null &&
-                               !messagesContainer.innerHTML.includes('chat-loading') && 
-                               !messagesContainer.innerHTML.includes('chat-messages-empty');
-            if (hasMessages) {
-                // Same chat, already loaded - just mark as read and update
-                await markMessagesAsRead(numChatId);
-                await updateUnreadCount();
-                return;
-            }
-            // Same chat but no messages loaded - continue to load
-        }
-        // Different chat - always load it
+        // Always switch to the clicked chat, even if it's the same one
+        // This ensures the chat is always refreshed and the user can switch between chats reliably
         
         // STEP 1: Abort all ongoing requests FIRST
         abortAllChatRequests();
@@ -1388,10 +2857,18 @@
         // STEP 2: ALWAYS clear old chat state when switching (even if same chat needs refresh)
         // This ensures clean state for the new chat
         clearMessagesUI();
+        hideAnfrageStatusBar(); // Hide status bar when switching chats
         currentMediaFiles = [];
         currentMediaIndex = 0;
         selectedFiles = [];
         removeFilePreview();
+        
+        // Clear input field when switching chats
+        const input = document.getElementById('chatInput');
+        if (input) {
+            input.value = '';
+            input.style.height = 'auto';
+        }
         
         // Close lightbox
         const lightbox = document.getElementById('chatMediaLightbox');
@@ -1425,8 +2902,55 @@
         if (chatMessagesContainer) chatMessagesContainer.style.display = 'flex';
         if (chatInputContainer) chatInputContainer.style.display = 'block';
         
-        // Update contact info
-        const contact = contactsCache.find(c => c.user_id === numUserId);
+        // Update contact info - check both contactsCache and archivedContactsCache
+        let contact = contactsCache.find(c => c.user_id === numUserId);
+        if (!contact) {
+            contact = archivedContactsCache.find(c => c.user_id === numUserId);
+        }
+        
+        // Check if this is an existing contact (from contacts or archived tab, not erkunden tab)
+        // An existing contact must:
+        // 1. Be in contactsCache or archivedContactsCache (appears in contacts or archived tab)
+        // 2. Have a chat_id
+        // Contacts from erkunden tab are NOT in these caches until they have messages
+        const isExistingContact = contact && numChatId && !isNaN(numChatId) && numChatId > 0;
+        
+        // Update favorite status
+        currentContactIsFavorite = contact ? (contact.is_favorite || false) : false;
+        
+        // Update favorite button - show for existing contacts (from contacts or archived tab, not erkunden tab)
+        const favoriteBtn = document.getElementById('chatFavoriteBtn');
+        const favoriteBtnMobile = document.getElementById('chatFavoriteBtnMobile');
+        
+        // Only show favorite button if:
+        // 1. Contact exists in contactsCache or archivedContactsCache (is from contacts or archived tab, not erkunden tab)
+        // 2. Contact has a chat_id
+        const shouldShowFavoriteBtn = isExistingContact;
+        
+        if (favoriteBtn) {
+            if (shouldShowFavoriteBtn) {
+                favoriteBtn.style.display = 'flex';
+                if (currentContactIsFavorite) {
+                    favoriteBtn.classList.add('active');
+                } else {
+                    favoriteBtn.classList.remove('active');
+                }
+            } else {
+                favoriteBtn.style.display = 'none';
+            }
+        }
+        if (favoriteBtnMobile) {
+            if (shouldShowFavoriteBtn) {
+                favoriteBtnMobile.style.display = 'flex';
+                if (currentContactIsFavorite) {
+                    favoriteBtnMobile.classList.add('active');
+                } else {
+                    favoriteBtnMobile.classList.remove('active');
+                }
+            } else {
+                favoriteBtnMobile.style.display = 'none';
+            }
+        }
         
         // Update contact info
         const userNameEl = document.getElementById('chatUserName');
@@ -1499,41 +3023,125 @@
             });
         }
         
-        // STEP 5: Load messages - Always load, even if chat is empty
+        // STEP 5: Load messages - Only load if contact is from contacts tab (has messages)
+        // Use the contact variable already defined above
+        if (isExistingContact) {
+            // Only load messages for existing contacts (from contacts tab)
+            try {
+                // Load messages - this will always display, even if empty
+                // Don't check currentChatId here - we just set it above, so it should be correct
+                const messages = await loadMessages(numChatId, true);
+                
+                // Verify we're still on this chat after loading (race condition check)
+                const numCurrentAfterLoad = currentChatId ? parseInt(currentChatId) : null;
+                if (numCurrentAfterLoad !== numChatId) {
+                    // Chat changed during load (user clicked another contact), don't update UI
+                    return;
+                }
+                
+                // We're still on the correct chat - finalize
+                // Check and show status bar for confirmed anfragen
+                await checkAndShowStatusBar(numChatId);
+                // Scroll to bottom if messages exist
+                if (messages && messages.length > 0) {
+                    setTimeout(() => scrollToBottom(), 100);
+                }
+                
+                // Mark messages as read (already done in loadMessages, but ensure it's done)
+                await markMessagesAsRead(numChatId);
+                await updateUnreadCount();
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Fehler beim Laden der Nachrichten:', error);
+                }
+                // On error, verify we're still on the correct chat
+                const numCurrentError = currentChatId ? parseInt(currentChatId) : null;
+                if (numCurrentError === numChatId) {
+                    // Still on same chat, show empty state
+                    const messages = [];
+                    messagesCache.set(numChatId, messages);
+                    await displayMessages(messages, numChatId);
+                }
+                // If chat changed, do nothing (another openChat call will handle it)
+            }
+        } else {
+            // New contact from erkunden tab - no messages to load, just show empty state
+            const messages = [];
+            messagesCache.set(numChatId, messages);
+            await displayMessages(messages, numChatId);
+        }
+    }
+    
+    // Add contact to contacts tab by creating a chat and sending a welcome message
+    async function addContactToContacts(userId, username, contactItem) {
         try {
-            // Load messages - this will always display, even if empty
-            // Don't check currentChatId here - we just set it above, so it should be correct
-            const messages = await loadMessages(numChatId, true);
-            
-            // Verify we're still on this chat after loading (race condition check)
-            const numCurrentAfterLoad = currentChatId ? parseInt(currentChatId) : null;
-            if (numCurrentAfterLoad !== numChatId) {
-                // Chat changed during load (user clicked another contact), don't update UI
-                return;
+            // Disable button to prevent multiple clicks
+            const addBtn = contactItem.querySelector('.chat-new-contact-add-btn');
+            if (addBtn) {
+                addBtn.disabled = true;
+                addBtn.style.opacity = '0.5';
             }
             
-            // We're still on the correct chat - finalize
-            // Scroll to bottom if messages exist
-            if (messages && messages.length > 0) {
-                setTimeout(() => scrollToBottom(), 100);
+            // Step 1: Create chat
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const createResponse = await fetch(basePath + 'api/create-chat.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `user_id=${userId}`
+            });
+            
+            const createData = await createResponse.json();
+            
+            if (!createData.success || !createData.chat_id) {
+                throw new Error(createData.message || 'Fehler beim Erstellen des Chats');
             }
             
-            // Mark messages as read (already done in loadMessages, but ensure it's done)
-            await markMessagesAsRead(numChatId);
-            await updateUnreadCount();
+            const chatId = parseInt(createData.chat_id);
+            
+            // Store participant IDs
+            if (createData.participant_ids && Array.isArray(createData.participant_ids) && createData.participant_ids.length >= 2) {
+                chatParticipants.set(chatId, createData.participant_ids);
+            }
+            if (createData.current_user_id) {
+                currentUserId = parseInt(createData.current_user_id);
+            }
+            
+            // Step 2: Send a welcome message to make the chat appear in contacts
+            const welcomeMessage = '👋'; // Simple welcome emoji
+            const sendResponse = await fetch(basePath + 'api/send-chat-message.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `chat_id=${chatId}&receiver_id=${userId}&message=${encodeURIComponent(welcomeMessage)}`
+            });
+            
+            const sendData = await sendResponse.json();
+            
+            if (!sendData.success) {
+                throw new Error(sendData.message || 'Fehler beim Senden der Nachricht');
+            }
+            
+            // Step 3: Remove contact from new contacts list
+            contactItem.remove();
+            
+            // Step 4: Reload contacts to show the new contact in contacts tab
+            await loadContacts(true);
+            
+            // Step 5: Switch to contacts tab
+            switchView('contacts');
+            
+            // Step 6: Open the chat
+            await openChat(chatId, userId, username);
+            
         } catch (error) {
-            if (error.name !== 'AbortError') {
-                console.error('Fehler beim Laden der Nachrichten:', error);
+            console.error('Fehler beim Hinzufügen des Kontakts:', error);
+            alert('Fehler beim Hinzufügen des Kontakts: ' + (error.message || 'Unbekannter Fehler'));
+            
+            // Re-enable button on error
+            const addBtn = contactItem.querySelector('.chat-new-contact-add-btn');
+            if (addBtn) {
+                addBtn.disabled = false;
+                addBtn.style.opacity = '1';
             }
-            // On error, verify we're still on the correct chat
-            const numCurrentError = currentChatId ? parseInt(currentChatId) : null;
-            if (numCurrentError === numChatId) {
-                // Still on same chat, show empty state
-                const messages = [];
-                messagesCache.set(numChatId, messages);
-                await displayMessages(messages, numChatId);
-            }
-            // If chat changed, do nothing (another openChat call will handle it)
         }
     }
     
@@ -1564,14 +3172,8 @@
             
             const data = await response.json();
             
-            // Check if user switched chats while waiting for response
-            // But allow if we're switching TO this user (currentContactId changed to userId)
-            const numCurrentContactId = currentContactId ? parseInt(currentContactId) : null;
-            const numCurrentChatId = currentChatId ? parseInt(currentChatId) : null;
-            if (numCurrentContactId !== userId && numCurrentChatId && numCurrentContactId !== null) {
-                // User switched to a different contact, don't open this chat
-                return null;
-            }
+            // Always open the chat, even if user clicked another contact
+            // The openChat function will handle the switch properly
             
             if (data.success && data.chat_id) {
                 // Store participant IDs and current user ID for encryption
@@ -1672,9 +3274,13 @@
             
                 const messages = data.messages || [];
             
-            // Store participant IDs
+            // Store participant IDs - CRITICAL for decryption
             if (data.participant_ids && Array.isArray(data.participant_ids) && data.participant_ids.length >= 2) {
                 chatParticipants.set(numChatId, data.participant_ids);
+                // Also ensure they're available immediately for decryption
+                console.debug('Stored participant IDs for chat', numChatId, ':', data.participant_ids);
+            } else {
+                console.warn('No valid participant IDs received for chat', numChatId, ':', data.participant_ids);
             }
             if (data.current_user_id) {
                 currentUserId = parseInt(data.current_user_id);
@@ -1814,10 +3420,14 @@
         // Get participant IDs for this chat
         // Use currentChatId if messages are empty, otherwise use first message's chat_id
         const chatId = (messages.length > 0 && messages[0].chat_id) ? parseInt(messages[0].chat_id) : numCurrent;
-        const participantIds = chatId ? chatParticipants.get(chatId) : null;
+        let participantIds = chatId ? chatParticipants.get(chatId) : null;
         
-        if (!participantIds && chatId) {
-            console.warn('No participant IDs found for chat:', chatId);
+        // If participant IDs are not in cache, try to get them from the first message
+        // This can happen if displayMessages is called before loadMessages completes
+        if (!participantIds && chatId && messages.length > 0) {
+            // Try to get from any message that might have participant_ids
+            // This is a fallback - normally they should be set by loadMessages
+            console.warn('No participant IDs found in cache for chat:', chatId, '- will try to derive from messages');
         }
         
         // Process messages with async decryption
@@ -1830,8 +3440,18 @@
             
             const msgChatId = parseInt(msg.chat_id || chatId);
             const isSent = msg.is_sent;
-            const msgParticipantIds = msgChatId ? chatParticipants.get(msgChatId) : participantIds;
-            const decryptedMessage = await decryptMessage(msg.message, msg.encrypted, msgChatId, msgParticipantIds);
+            
+            // Get participant IDs - try multiple sources
+            let msgParticipantIds = msgChatId ? chatParticipants.get(msgChatId) : participantIds;
+            
+            // If still no participant IDs, try to get from cache again (might have been set by now)
+            if (!msgParticipantIds && msgChatId) {
+                msgParticipantIds = chatParticipants.get(msgChatId);
+            }
+            
+            // No decryption - return message as-is
+            const decryptedMessage = msg.message || '';
+            
             return { msg, isSent, decryptedMessage, index };
         });
         
@@ -2118,11 +3738,9 @@
         
         const isSent = message.is_sent;
         const chatId = parseInt(message.chat_id || currentChatId);
-        const participantIds = chatId ? chatParticipants.get(chatId) : null;
         
-        // Note: participantIds might be null for old chats, will fallback to XOR decryption
-        
-        const decryptedMessage = await decryptMessage(message.message, message.encrypted, chatId, participantIds);
+        // No decryption - use message as-is
+        const decryptedMessage = message.message || '';
         
         // Check if this message has files
         const files = extractFilesFromMessage(message, decryptedMessage);
@@ -2162,8 +3780,8 @@
                     const diffMinutes = (currentTime - lastTime) / (1000 * 60);
                     if (diffMinutes <= 5) {
                         // Check if last message has files
-                        const lastMsgParticipantIds = chatId ? chatParticipants.get(chatId) : null;
-                        const lastDecryptedMsg = await decryptMessage(lastMsg.message, lastMsg.encrypted, chatId, lastMsgParticipantIds);
+                        // No decryption - use message as-is
+                        const lastDecryptedMsg = lastMsg.message || '';
                         const lastMsgFiles = extractFilesFromMessage(lastMsg, lastDecryptedMsg);
                         if (lastMsgFiles.length > 0) {
                             // Last message has files, current message is within 5 minutes - re-render for proper grouping
@@ -2706,10 +4324,10 @@
         // Need either message or files
         if (!message && files.length === 0) return;
         
-        // Disable input
-        input.disabled = true;
-        sendBtn.disabled = true;
-        if (fileBtn) fileBtn.disabled = true;
+        // Don't disable input - allow continuous typing
+        // input.disabled = true;
+        // sendBtn.disabled = true;
+        // if (fileBtn) fileBtn.disabled = true;
         
         try {
             // Process files: all files (images and videos) are sent as files
@@ -2748,8 +4366,6 @@
             
             // Prepare message content - just text now, no base64
             let messageContent = message || '';
-            let shouldEncrypt = true;
-            
             const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
             
             // Use fetch with FormData - ensures complete upload before response
@@ -2769,15 +4385,11 @@
                 formData.append('uploaded_videos', JSON.stringify(uploadedVideoFiles));
             }
             
-            // Add message - encrypt before sending
+            // Add message
             if (messageContent) {
-                const participantIds = currentChatId ? chatParticipants.get(parseInt(currentChatId)) : null;
-                const encryptedMessage = await encryptMessage(messageContent, parseInt(currentChatId), participantIds);
-                formData.append('message', encryptedMessage.message);
-                formData.append('encrypted', encryptedMessage.encrypted ? '1' : '0');
+                formData.append('message', messageContent);
             } else {
                 formData.append('message', '');
-                formData.append('encrypted', '0');
             }
             
             // Send request - fetch ensures complete upload before returning response
@@ -2880,7 +4492,7 @@
                             file_path: sentMsg.file_path,
                             file_type: sentMsg.file_type,
                             message: sentMsg.message,
-                            encrypted: sentMsg.encrypted,
+                            encrypted: false,
                             // Preserve other important fields
                             chat_id: sentMsg.chat_id || existingMsg.chat_id,
                             is_sent: sentMsg.is_sent !== undefined ? sentMsg.is_sent : existingMsg.is_sent
@@ -3037,9 +4649,10 @@
             console.error('Fehler:', error);
             alert('Fehler beim Senden der Nachricht: ' + (error.message || 'Unbekannter Fehler'));
         } finally {
-            input.disabled = false;
-            sendBtn.disabled = false;
-            if (fileBtn) fileBtn.disabled = false;
+            // Input is no longer disabled, so no need to re-enable
+            // input.disabled = false;
+            // sendBtn.disabled = false;
+            // if (fileBtn) fileBtn.disabled = false;
             input.focus();
         }
     }
@@ -3530,9 +5143,8 @@
     // Copy message to clipboard
     async function copyMessage(message) {
         try {
-            const chatId = parseInt(message.chat_id || currentChatId);
-            const participantIds = chatId ? chatParticipants.get(chatId) : null;
-            const decryptedMessage = await decryptMessage(message.message, message.encrypted, chatId, participantIds);
+            // No decryption - use message as-is
+            const decryptedMessage = message.message || '';
             
             // Extract text from message (remove file data)
             let textToCopy = '';
@@ -3743,11 +5355,10 @@
         const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
         const files = [];
         
-        const participantIds = currentChatId ? chatParticipants.get(parseInt(currentChatId)) : null;
-        
-        // Process messages with async decryption
+        // Process messages - no decryption needed
         const messagePromises = messages.map(async (message) => {
-            const decryptedMessage = await decryptMessage(message.message, message.encrypted, parseInt(currentChatId), participantIds);
+            // No decryption - use message as-is
+            const decryptedMessage = message.message || '';
             return { message, decryptedMessage };
         });
         
@@ -4017,276 +5628,7 @@
         }
     }
     
-    function initEncryption() {
-        // Encryption is now handled by AES-GCM with key derivation from chat participants
-        // No need to store keys in localStorage
-    }
-    
-    /**
-     * Derive encryption key from chat participants
-     * Uses deterministic key derivation so both users get the same key
-     */
-    async function deriveEncryptionKey(chatId, participantIds) {
-        // Check cache first
-        const cacheKey = `chat_${chatId}_key`;
-        if (encryptionKeys.has(cacheKey)) {
-            return encryptionKeys.get(cacheKey);
-        }
-        
-        if (!participantIds || participantIds.length < 2) {
-            console.error('Cannot derive key: need at least 2 participants');
-            return null;
-        }
-        
-        // Sort participant IDs to ensure both users derive the same key
-        const sortedIds = [...participantIds].sort((a, b) => a - b);
-        const keyMaterial = sortedIds.join(':') + ':' + chatId;
-        
-        try {
-            // Import key material using PBKDF2
-            const encoder = new TextEncoder();
-            const keyMaterialBytes = encoder.encode(keyMaterial);
-            
-            // Import as raw key material
-            const baseKey = await crypto.subtle.importKey(
-                'raw',
-                keyMaterialBytes,
-                'PBKDF2',
-                false,
-                ['deriveBits', 'deriveKey']
-            );
-            
-            // Derive AES-GCM key using PBKDF2
-            const salt = encoder.encode('NeighborNet-Chat-Encryption-Salt-v1');
-            const derivedKey = await crypto.subtle.deriveKey(
-                {
-                    name: 'PBKDF2',
-                    salt: salt,
-                    iterations: 100000,
-                    hash: 'SHA-256'
-                },
-                baseKey,
-                {
-                    name: 'AES-GCM',
-                    length: 256
-                },
-                false,
-                ['encrypt', 'decrypt']
-            );
-            
-            // Cache the key
-            encryptionKeys.set(cacheKey, derivedKey);
-            return derivedKey;
-        } catch (error) {
-            console.error('Key derivation error:', error);
-            return null;
-        }
-    }
-    
-    /**
-     * Encrypt message using AES-GCM
-     * Message is encrypted before sending to server
-     */
-    async function encryptMessage(message, chatId, participantIds) {
-        if (!message || message.trim() === '') {
-            return {
-                message: '',
-                encrypted: false
-            };
-        }
-        
-        // Don't encrypt if it looks like JSON (file data)
-        if (message && (message.startsWith('[') || message.startsWith('{'))) {
-            return {
-                message: message,
-                encrypted: false
-            };
-        }
-        
-        try {
-            // Get encryption key
-            const key = await deriveEncryptionKey(chatId, participantIds);
-            if (!key) {
-                console.error('Failed to derive encryption key');
-            return {
-                    message: message,
-                    encrypted: false
-                };
-            }
-            
-            // Generate random IV (12 bytes for AES-GCM)
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            
-            // Encrypt the message
-            const encoder = new TextEncoder();
-            const data = encoder.encode(message);
-            
-            const encryptedData = await crypto.subtle.encrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
-                key,
-                data
-            );
-            
-            // Combine IV and encrypted data
-            const combined = new Uint8Array(iv.length + encryptedData.byteLength);
-            combined.set(iv, 0);
-            combined.set(new Uint8Array(encryptedData), iv.length);
-            
-            // Encode to base64 for storage
-            const base64 = btoa(String.fromCharCode(...combined));
-            
-            return {
-                message: base64,
-                encrypted: true
-            };
-        } catch (error) {
-            console.error('Encryption error:', error);
-            return {
-                message: message,
-                encrypted: false
-            };
-        }
-    }
-    
-    /**
-     * Decrypt message using AES-GCM or fallback to XOR for old messages
-     * Message is decrypted when received from server
-     */
-    async function decryptMessage(encryptedMessage, isEncrypted, chatId, participantIds) {
-        if (!isEncrypted || !encryptedMessage) {
-            return encryptedMessage || '';
-        }
-        
-        // Don't try to decrypt if it looks like JSON
-        if (encryptedMessage && (encryptedMessage.startsWith('[') || encryptedMessage.startsWith('{'))) {
-            return encryptedMessage;
-        }
-        
-        // Determine if this is an old XOR-encrypted message or new AES-GCM
-        // Strategy: Try AES-GCM first if we have participant IDs, fallback to XOR
-        
-        const hasParticipantIds = participantIds && participantIds.length >= 2;
-        
-        if (hasParticipantIds) {
-            // Try AES-GCM first for new messages
-            try {
-                // Get decryption key
-                const key = await deriveEncryptionKey(chatId, participantIds);
-                if (!key) {
-                    throw new Error('Failed to derive AES-GCM key');
-                }
-                
-                // Decode from base64
-                let combined;
-                try {
-                    combined = Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0));
-                } catch (e) {
-                    // Invalid base64, probably old XOR message
-                    throw new Error('Invalid base64 for AES-GCM');
-                }
-                
-                // Check if we have enough bytes for IV (12 bytes) + at least some data
-                // AES-GCM messages will always have at least 13 bytes (12 IV + 1 data)
-                if (combined.length < 13) {
-                    // Too short for AES-GCM, must be old XOR
-                    throw new Error('Message too short for AES-GCM');
-                }
-                
-                // Extract IV (first 12 bytes) and encrypted data
-                const iv = combined.slice(0, 12);
-                const encryptedData = combined.slice(12);
-                
-                // Try to decrypt with AES-GCM
-                const decryptedData = await crypto.subtle.decrypt(
-                    {
-                        name: 'AES-GCM',
-                        iv: iv
-                    },
-                    key,
-                    encryptedData
-                );
-                
-                // Convert to string
-                const decoder = new TextDecoder();
-                const result = decoder.decode(decryptedData);
-                
-                // If we got a valid result, return it
-                if (result && result.length > 0) {
-                    return result;
-                }
-                
-                throw new Error('AES-GCM returned empty result');
-            } catch (aesError) {
-                // AES-GCM decryption failed, try old XOR method
-                // This is expected for old messages encrypted with XOR
-                console.debug('AES-GCM decryption failed, trying old XOR method for chat', chatId, ':', aesError.message);
-            }
-        }
-        
-        // Fallback to old XOR decryption for backward compatibility
-        // This handles all old messages that were encrypted with XOR
-        return decryptMessageOldXOR(encryptedMessage, chatId);
-    }
-    
-    /**
-     * Old XOR decryption for backward compatibility with existing messages
-     * This matches the original xorDecrypt implementation exactly
-     */
-    function decryptMessageOldXOR(encryptedMessage, chatId) {
-        if (!encryptedMessage) {
-            return '';
-        }
-        
-        try {
-            // Try to get old encryption key from localStorage
-            // Match original getEncryptionKey logic: check chat_key_{chatId} first
-            let key = null;
-            
-            // First check in-memory cache
-            key = encryptionKeys.get(chatId);
-            
-            // If not in cache, check localStorage
-            if (!key) {
-                const storedKey = localStorage.getItem(`chat_key_${chatId}`);
-                if (storedKey) {
-                    key = storedKey;
-                    // Cache it
-                    encryptionKeys.set(chatId, key);
-                }
-            }
-            
-            // If still no key, try general encryption key as last resort
-            if (!key) {
-                key = localStorage.getItem('chat_encryption_key');
-            }
-            
-            if (!key) {
-                console.warn('No old encryption key found for chat:', chatId);
-                return '[Nachricht konnte nicht entschlüsselt werden]';
-            }
-            
-            // Original xorDecrypt implementation - no validation, just decrypt
-        try {
-            // Decode from base64
-                const text = atob(encryptedMessage);
-            let result = '';
-            for (let i = 0; i < text.length; i++) {
-                const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-                result += String.fromCharCode(charCode);
-            }
-            return result;
-        } catch (error) {
-                console.error('XOR decryption error:', error);
-            return '[Entschlüsselungsfehler]';
-            }
-        } catch (error) {
-            console.error('Old XOR decryption error:', error, 'chatId:', chatId);
-            return '[Nachricht konnte nicht entschlüsselt werden]';
-        }
-    }
+    // Encryption removed
     
     // Helper functions
     // Helper function to parse timestamp
@@ -4944,6 +6286,10 @@
                 // Lade Kontakte neu, damit der Chat in "Kontakte" erscheint
                 loadContacts();
                 loadNewContacts();
+                // Update profile stats if function exists
+                if (typeof window.updateProfileStats === 'function') {
+                    window.updateProfileStats();
+                }
             } else {
                 alert(data.message || 'Fehler beim Erstellen der Anfrage');
             }
@@ -4959,6 +6305,7 @@
         const anfrageId = anfrageData.anfrage_id;
         const status = anfrageData.status || 'pending';
         const angebotTitle = anfrageData.angebot_title || '';
+        const messageType = anfrageData.type || (message.file_type === 'anfrage_accepted' ? 'anfrage_accepted' : 'anfrage_request');
         const isRequester = !isSent; // Empfänger ist der Hilfesuchende
         const isHelper = isSent; // Sender ist der Hilfegebende
         
@@ -4966,53 +6313,85 @@
         let buttonHtml = '';
         let messageClass = '';
         
-        if (status === 'rejected') {
-            messageClass = 'anfrage-rejected';
-        } else if (status === 'accepted') {
-            messageClass = 'anfrage-accepted';
-            if (isRequester) {
-                // Hilfesuchender hat bereits angenommen - zeige Status
-                messageText = messageText + '<div class="anfrage-status-badge anfrage-status-accepted">Anfrage angenommen</div>';
-            } else if (isHelper) {
-                // Hilfegebender sieht, dass angenommen wurde - zeige Bestätigungs-Buttons
-                buttonHtml = `
-                    <div class="anfrage-buttons">
-                        <button class="anfrage-btn anfrage-btn-confirm" data-anfrage-id="${anfrageId}" data-action="confirm">
-                            Bestätigen
-                        </button>
-                        <button class="anfrage-btn anfrage-btn-reject" data-anfrage-id="${anfrageId}" data-action="cancel">
-                            Ablehnen
-                        </button>
-                    </div>
-                `;
-            }
-        } else if (status === 'confirmed') {
-            messageClass = 'anfrage-confirmed';
-            messageText = messageText + '<div class="anfrage-status-badge anfrage-status-confirmed">Hilfe bestätigt</div>';
-        } else if (status === 'pending') {
-            if (isRequester) {
-                // Hilfesuchender sieht Anfrage - zeige Annehmen/Ablehnen Buttons
-                buttonHtml = `
-                    <div class="anfrage-buttons">
-                        <button class="anfrage-btn anfrage-btn-accept" data-anfrage-id="${anfrageId}" data-action="accept">
-                            Annehmen
-                        </button>
-                        <button class="anfrage-btn anfrage-btn-reject" data-anfrage-id="${anfrageId}" data-action="reject">
-                            Ablehnen
-                        </button>
-                    </div>
-                `;
+        // Handle anfrage_accepted type (confirmation message sent to helper)
+        if (messageType === 'anfrage_accepted') {
+            if (isHelper) {
+                // Helper sees the acceptance message - show confirm/reject buttons
+                if (status === 'accepted') {
+                    buttonHtml = `
+                        <div class="anfrage-buttons">
+                            <button class="anfrage-btn anfrage-btn-confirm" data-anfrage-id="${anfrageId}" data-action="confirm">
+                                Bestätigen
+                            </button>
+                            <button class="anfrage-btn anfrage-btn-reject" data-anfrage-id="${anfrageId}" data-action="cancel">
+                                Ablehnen
+                            </button>
+                        </div>
+                    `;
+                    messageClass = 'anfrage-accepted';
+                } else if (status === 'confirmed') {
+                    messageClass = 'anfrage-confirmed';
+                    messageText = messageText + '<div class="anfrage-status-badge anfrage-status-confirmed">Hilfe bestätigt</div>';
+                }
             } else {
-                // Hilfegebender sieht seine eigene Anfrage - zeige Status
-                messageText = messageText + '<div class="anfrage-status-badge anfrage-status-pending">Warte auf Antwort</div>';
+                // Requester sees their own acceptance message - show status
+                messageClass = 'anfrage-accepted';
+                messageText = messageText + '<div class="anfrage-status-badge anfrage-status-accepted">Anfrage angenommen</div>';
+            }
+        } else {
+            // Original anfrage_request type
+            if (status === 'rejected') {
+                messageClass = 'anfrage-rejected';
+            } else if (status === 'accepted') {
+                messageClass = 'anfrage-accepted';
+                if (isRequester) {
+                    // Hilfesuchender hat bereits angenommen - zeige Status
+                    messageText = messageText + '<div class="anfrage-status-badge anfrage-status-accepted">Anfrage angenommen</div>';
+                } else if (isHelper) {
+                    // Hilfegebender sieht, dass angenommen wurde - zeige Bestätigungs-Buttons
+                    buttonHtml = `
+                        <div class="anfrage-buttons">
+                            <button class="anfrage-btn anfrage-btn-confirm" data-anfrage-id="${anfrageId}" data-action="confirm">
+                                Bestätigen
+                            </button>
+                            <button class="anfrage-btn anfrage-btn-reject" data-anfrage-id="${anfrageId}" data-action="cancel">
+                                Ablehnen
+                            </button>
+                        </div>
+                    `;
+                }
+            } else if (status === 'confirmed') {
+                messageClass = 'anfrage-confirmed';
+                messageText = messageText + '<div class="anfrage-status-badge anfrage-status-confirmed">Hilfe bestätigt</div>';
+            } else if (status === 'pending') {
+                if (isRequester) {
+                    // Hilfesuchender sieht Anfrage - zeige Annehmen/Ablehnen Buttons
+                    buttonHtml = `
+                        <div class="anfrage-buttons">
+                            <button class="anfrage-btn anfrage-btn-accept" data-anfrage-id="${anfrageId}" data-action="accept">
+                                Annehmen
+                            </button>
+                            <button class="anfrage-btn anfrage-btn-reject" data-anfrage-id="${anfrageId}" data-action="reject">
+                                Ablehnen
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Hilfegebender sieht seine eigene Anfrage - zeige Status
+                    messageText = messageText + '<div class="anfrage-status-badge anfrage-status-pending">Warte auf Antwort</div>';
+                }
             }
         }
         
         // messageText kann bereits HTML enthalten (Status-Badges)
         const textContent = messageText.includes('<div') ? messageText : escapeHtml(messageText);
         
+        // Hole Kategorie-Farbe aus anfrageData
+        const categoryColor = anfrageData.category_color || '#607D8B';
+        const categoryStyle = `border-left: 4px solid ${categoryColor}; background: linear-gradient(to right, ${categoryColor}15, var(--message-bg, #f0f0f0));`;
+        
         return `
-            <div class="chat-message-anfrage ${messageClass}">
+            <div class="chat-message-anfrage ${messageClass}" style="${categoryStyle}">
                 <div class="chat-message-text">${textContent}</div>
                 ${buttonHtml}
             </div>
@@ -5054,9 +6433,18 @@
                     
                     const data = await response.json();
                     if (data.success) {
+                        // If confirm action, show status bar
+                        if (action === 'confirm' && data.anfrage_id && data.angebot_title) {
+                            showAnfrageStatusBar(data.anfrage_id, data.angebot_title);
+                        }
+                        
                         // Lade Nachrichten neu, um aktualisierten Status zu sehen
                         if (currentChatId) {
                             await loadMessages(currentChatId, false);
+                        }
+                        // Update profile stats if function exists
+                        if (typeof window.updateProfileStats === 'function') {
+                            window.updateProfileStats();
                         }
                     } else {
                         alert(data.message || 'Fehler beim Verarbeiten der Anfrage');
@@ -5072,6 +6460,174 @@
             });
         });
     }
+    
+    // Funktionen für Status-Bar
+    function showAnfrageStatusBar(anfrageId, angebotTitle) {
+        const statusBar = document.getElementById('chatAnfrageStatusBar');
+        const statusText = document.getElementById('chatAnfrageStatusText');
+        
+        if (statusBar && statusText) {
+            statusText.textContent = angebotTitle;
+            statusBar.dataset.anfrageId = anfrageId;
+            statusBar.style.display = 'flex';
+            
+            // Attach event listeners if not already attached
+            attachStatusBarListeners();
+        }
+    }
+    
+    function hideAnfrageStatusBar() {
+        const statusBar = document.getElementById('chatAnfrageStatusBar');
+        if (statusBar) {
+            statusBar.style.display = 'none';
+            delete statusBar.dataset.anfrageId;
+        }
+    }
+    
+    function attachStatusBarListeners() {
+        const erledigtBtn = document.getElementById('chatAnfrageStatusBtnErledigt');
+        const abbrechenBtn = document.getElementById('chatAnfrageStatusBtnAbbrechen');
+        const statusBar = document.getElementById('chatAnfrageStatusBar');
+        
+        if (!statusBar || !statusBar.dataset.listenerAttached) {
+            statusBar.dataset.listenerAttached = 'true';
+            
+            if (erledigtBtn) {
+                erledigtBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    const anfrageId = parseInt(statusBar.dataset.anfrageId);
+                    if (!anfrageId) return;
+                    
+                    this.disabled = true;
+                    const originalText = this.textContent;
+                    this.textContent = 'Wird verarbeitet...';
+                    
+                    try {
+                        const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+                        const formData = new FormData();
+                        formData.append('anfrage_id', anfrageId);
+                        formData.append('action', 'erledigt');
+                        
+                        const response = await fetch(basePath + 'api/handle-anfrage.php', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            hideAnfrageStatusBar();
+                            if (currentChatId) {
+                                await loadMessages(currentChatId, false);
+                            }
+                            if (typeof window.updateProfileStats === 'function') {
+                                window.updateProfileStats();
+                            }
+                        } else {
+                            alert(data.message || 'Fehler beim Markieren als erledigt');
+                            this.disabled = false;
+                            this.textContent = originalText;
+                        }
+                    } catch (error) {
+                        console.error('Fehler:', error);
+                        alert('Fehler beim Markieren als erledigt');
+                        this.disabled = false;
+                        this.textContent = originalText;
+                    }
+                });
+            }
+            
+            if (abbrechenBtn) {
+                abbrechenBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    const anfrageId = parseInt(statusBar.dataset.anfrageId);
+                    if (!anfrageId) return;
+                    
+                    this.disabled = true;
+                    const originalText = this.textContent;
+                    this.textContent = 'Wird verarbeitet...';
+                    
+                    try {
+                        const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+                        const formData = new FormData();
+                        formData.append('anfrage_id', anfrageId);
+                        formData.append('action', 'cancel');
+                        
+                        const response = await fetch(basePath + 'api/handle-anfrage.php', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            hideAnfrageStatusBar();
+                            if (currentChatId) {
+                                await loadMessages(currentChatId, false);
+                            }
+                            if (typeof window.updateProfileStats === 'function') {
+                                window.updateProfileStats();
+                            }
+                        } else {
+                            alert(data.message || 'Fehler beim Abbrechen');
+                            this.disabled = false;
+                            this.textContent = originalText;
+                        }
+                    } catch (error) {
+                        console.error('Fehler:', error);
+                        alert('Fehler beim Abbrechen');
+                        this.disabled = false;
+                        this.textContent = originalText;
+                    }
+                });
+            }
+        }
+    }
+    
+    // Check for confirmed anfragen when opening a chat
+    async function checkAndShowStatusBar(chatId) {
+        if (!chatId) {
+            hideAnfrageStatusBar();
+            return;
+        }
+        
+        try {
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '';
+            const response = await fetch(basePath + 'api/get-chat-messages.php?chat_id=' + chatId);
+            const data = await response.json();
+            
+            if (data.success && data.messages && data.current_user_id) {
+                const currentUserId = parseInt(data.current_user_id);
+                
+                // Find confirmed anfrage message where current user is the helper
+                for (const msg of data.messages) {
+                    if (msg.anfrage_data && msg.anfrage_data.status === 'confirmed') {
+                        // Check if current user is the helper
+                        const helperId = msg.anfrage_data.helper_id;
+                        if (helperId && parseInt(helperId) === currentUserId) {
+                            // Current user is the helper - show status bar
+                            const anfrageId = msg.anfrage_data.anfrage_id;
+                            const angebotTitle = msg.anfrage_data.angebot_title || '';
+                            
+                            if (anfrageId && angebotTitle) {
+                                showAnfrageStatusBar(anfrageId, angebotTitle);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // No confirmed anfrage found, hide status bar
+            hideAnfrageStatusBar();
+        } catch (error) {
+            console.error('Fehler beim Prüfen der Status-Bar:', error);
+            hideAnfrageStatusBar();
+        }
+    }
+    
+    // Make functions globally available
+    window.showAnfrageStatusBar = showAnfrageStatusBar;
+    window.hideAnfrageStatusBar = hideAnfrageStatusBar;
+    window.checkAndShowStatusBar = checkAndShowStatusBar;
 })();
 
 

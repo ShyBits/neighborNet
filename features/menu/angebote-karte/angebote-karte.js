@@ -23,10 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
             maxZoom: 19
         }).addTo(map);
         window.currentTileLayer = currentTileLayer;
-    } else if (typeof L === 'undefined') {
-        // Leaflet nicht geladen, beende
-        return;
     }
+    // Leaflet nicht geladen ist OK - Anfragen werden trotzdem angezeigt
     
     let userLocationMarker = null;
     let watchId = null;
@@ -630,6 +628,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < activeAngebote.length; i++) {
             const angebot = activeAngebote[i];
             const isOwner = angebot.is_owner === true;
+            const hasActiveAnfrage = angebot.has_active_anfrage === true;
             
             // Formatiere Datum und Zeit
             const startTime = angebot.start_time ? angebot.start_time.substring(0, 5) : '';
@@ -690,14 +689,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     ${isLoggedIn && !isGuest && angebot.user_id ? `
                     <div class="map-popup-actions">
-                        <button class="map-popup-contact-btn ${isOwner ? 'map-popup-contact-btn-delete' : ''}" 
-                                ${isOwner ? `data-angebot-id="${angebot.id}" title="Anfrage löschen"` : `data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}"`}>
+                        <button class="map-popup-contact-btn ${isOwner ? 'map-popup-contact-btn-delete' : ''} ${hasActiveAnfrage && !isOwner ? 'map-popup-contact-btn-disabled' : ''}" 
+                                ${isOwner ? `data-angebot-id="${angebot.id}" title="Anfrage löschen"` : `data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}" title="${hasActiveAnfrage ? 'Anfrage bereits gesendet' : 'Kontaktieren'}" ${hasActiveAnfrage ? 'disabled' : ''}`}>
                             ${isOwner ? `
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 6L6 18"></path>
                                 <path d="M6 6l12 12"></path>
                             </svg>
                             Löschen
+                            ` : hasActiveAnfrage ? `
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Warte auf Antwort
                             ` : `
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -710,14 +715,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             
-            const marker = L.marker([parseFloat(angebot.lat), parseFloat(angebot.lng)]).addTo(map);
-            marker.angebotId = angebot.id; // Speichere angebotId im Marker für einfaches Löschen
-            const popup = L.popup({ maxWidth: 350, className: 'custom-popup' })
-                .setContent(popupContent);
-            marker.bindPopup(popup);
-            
-            // Event-Listener für Kontakt-Button im Popup hinzufügen
-            marker.on('popupopen', function() {
+            // Erstelle Marker nur wenn Karte existiert
+            let marker = null;
+            if (map && typeof L !== 'undefined') {
+                marker = L.marker([parseFloat(angebot.lat), parseFloat(angebot.lng)]).addTo(map);
+                marker.angebotId = angebot.id; // Speichere angebotId im Marker für einfaches Löschen
+                const popup = L.popup({ maxWidth: 350, className: 'custom-popup' })
+                    .setContent(popupContent);
+                marker.bindPopup(popup);
+                
+                // Event-Listener für Kontakt-Button im Popup hinzufügen
+                marker.on('popupopen', function() {
                 // Suche nach dem Button mit der angebotId (funktioniert für beide Varianten)
                 const contactBtn = document.querySelector('.map-popup-contact-btn[data-angebot-id="' + angebot.id + '"]');
                 if (contactBtn) {
@@ -747,7 +755,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             }
                         } else {
-                            // Normaler Kontakt-Button
+                            // Normaler Kontakt-Button - prüfe ob deaktiviert
+                            if (this.disabled || this.classList.contains('map-popup-contact-btn-disabled')) {
+                                return; // Button ist deaktiviert, keine Aktion
+                            }
                             const userId = parseInt(this.dataset.userId);
                             const username = this.dataset.username;
                             const angebotId = parseInt(this.dataset.angebotId);
@@ -756,8 +767,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             });
+            }
             
-            markers.push(marker);
+            if (marker) {
+                markers.push(marker);
+            }
             
             const angebotDiv = document.createElement('div');
             angebotDiv.className = 'angebote-item';
@@ -805,41 +819,49 @@ document.addEventListener('DOMContentLoaded', function() {
             // Erstelle dateStr für die Item-Anzeige
             const dateStr = startDate ? startDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
             
+            // Button HTML
+            const buttonHtml = isLoggedIn && !isGuest && angebot.user_id ? `
+                <button class="angebote-contact-btn ${isOwner ? 'angebote-contact-btn-delete' : ''} ${hasActiveAnfrage && !isOwner ? 'angebote-contact-btn-disabled' : ''}" 
+                        ${isOwner ? `data-angebot-id="${angebot.id}" title="Anfrage löschen"` : `data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}" title="${hasActiveAnfrage ? 'Anfrage bereits gesendet' : 'Kontaktieren'}" ${hasActiveAnfrage ? 'disabled' : ''}`}>
+                    ${isOwner ? `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18"></path>
+                        <path d="M6 6l12 12"></path>
+                    </svg>
+                    ` : hasActiveAnfrage ? `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    ` : `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    `}
+                </button>
+            ` : '';
+            
             angebotDiv.innerHTML = `
                 <div class="angebote-item-content">
-                    <div class="angebote-item-left">
+                    <div class="angebote-item-info">
                         <div class="angebote-item-header">
-                            <div class="angebote-item-title-wrapper">
-                                <h4 class="angebote-item-title">${angebot.title}</h4>
+                            <h4 class="angebote-item-title">${angebot.title}</h4>
+                            <div class="angebote-item-datetime">
+                                ${dateStr ? `<span class="angebote-item-date">${dateStr}</span>` : ''}
+                                ${dateStr && timeRange ? `<span class="angebote-item-separator">|</span>` : ''}
                                 ${timeRange ? `<span class="angebote-item-time">${timeRange}</span>` : ''}
                             </div>
-                            ${dateStr ? `<span class="angebote-item-date">${dateStr}</span>` : ''}
+                            ${angebot.address ? `<span class="angebote-item-location">${escapeHtml(angebot.address)}</span>` : ''}
                         </div>
                         <p class="angebote-item-description">${angebot.description}</p>
                         <div class="angebote-item-footer">
                             <span class="angebote-item-author">Von ${angebot.author || 'Unbekannt'}</span>
-                            <div class="angebote-item-actions">
-                                ${isLoggedIn && !isGuest && angebot.user_id ? `
-                                <button class="angebote-contact-btn ${isOwner ? 'angebote-contact-btn-delete' : ''}" 
-                                        ${isOwner ? `data-angebot-id="${angebot.id}" title="Anfrage löschen"` : `data-user-id="${angebot.user_id}" data-username="${escapeHtml(angebot.author || 'Unbekannt')}" data-angebot-id="${angebot.id}" title="Kontaktieren"`}>
-                                    ${isOwner ? `
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M18 6L6 18"></path>
-                                        <path d="M6 6l12 12"></path>
-                                    </svg>
-                                    ` : `
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                    </svg>
-                                    `}
-                                </button>
-                                ` : ''}
-                            </div>
                         </div>
                     </div>
-                    <div class="angebote-item-right">
+                    <div class="angebote-item-image">
                         ${imageHtml}
                     </div>
+                    ${buttonHtml}
                 </div>
             `;
             
@@ -876,7 +898,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     } else {
-                        // Normaler Kontakt-Button
+                        // Normaler Kontakt-Button - prüfe ob deaktiviert
+                        if (this.disabled || this.classList.contains('angebote-contact-btn-disabled')) {
+                            return; // Button ist deaktiviert, keine Aktion
+                        }
                         const userId = parseInt(this.dataset.userId);
                         const username = this.dataset.username;
                         const angebotId = parseInt(this.dataset.angebotId);
@@ -989,6 +1014,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 loadAngebote();
+                // Update profile stats if function exists
+                if (typeof window.updateProfileStats === 'function') {
+                    window.updateProfileStats();
+                }
             } else {
                 alert('Fehler: ' + data.message);
             }

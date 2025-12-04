@@ -54,21 +54,42 @@ if (!isset($basePath)) {
                     </svg>
                     <span>Kontakte</span>
                 </button>
+                <button class="chat-contacts-tab" data-view="archived" id="chatArchivedTab" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                        <rect x="1" y="3" width="22" height="5"></rect>
+                        <line x1="10" y1="12" x2="14" y2="12"></line>
+                    </svg>
+                    <span>Archiviert</span>
+                </button>
                 <button class="chat-contacts-tab" data-view="new-contacts" id="chatNewContactsTab">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="16"></line>
                         <line x1="8" y1="12" x2="16" y2="12"></line>
                     </svg>
-                    <span>Neue Kontakte</span>
+                    <span>Erkunden</span>
                 </button>
             </div>
             <div class="chat-search-container" id="chatSearchContainer">
+                <button class="chat-favorites-filter-btn" id="chatFavoritesFilterBtn" title="Nach Favoriten filtern">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </button>
+                <button class="chat-favorites-filter-btn" id="chatArchivedFavoritesFilterBtn" title="Nach Favoriten filtern" style="display: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </button>
                 <input type="text" class="chat-search-input" id="chatSearchInput" placeholder="Nach Kontakten suchen...">
             </div>
             <div class="chat-contacts-content">
                 <div class="chat-contacts-list" id="chatContactsList">
                     <div class="chat-loading">Lade Kontakte...</div>
+                </div>
+                <div class="chat-archived-contacts-list" id="chatArchivedContactsList" style="display: none;">
+                    <div class="chat-loading">Lade archivierte Kontakte...</div>
                 </div>
                 <div class="chat-new-contacts-list" id="chatNewContactsList" style="display: none;">
                     <div class="chat-loading">Lade Kontakte...</div>
@@ -87,6 +108,11 @@ if (!isset($basePath)) {
                     <img class="chat-user-avatar-mobile" id="chatUserAvatarMobile" src="" alt="">
                     <div class="chat-user-name-mobile" id="chatUserNameMobile"></div>
                 </div>
+                <button class="chat-favorite-btn-mobile" id="chatFavoriteBtnMobile" aria-label="Favorisieren" title="Favorisieren">
+                    <svg class="chat-favorite-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </button>
             </div>
             
             <div class="chat-empty-state" id="chatEmptyState">
@@ -106,6 +132,25 @@ if (!isset($basePath)) {
                     <div class="chat-user-details">
                         <h4 class="chat-user-name" id="chatUserName"></h4>
                         <span class="chat-user-status" id="chatUserStatus"></span>
+                    </div>
+                </div>
+                <button class="chat-favorite-btn" id="chatFavoriteBtn" aria-label="Favorisieren" title="Favorisieren">
+                    <svg class="chat-favorite-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+            <!-- Status Bar for confirmed anfragen (only visible to helper) -->
+            <div class="chat-anfrage-status-bar" id="chatAnfrageStatusBar" style="display: none;">
+                <div class="chat-anfrage-status-content">
+                    <span class="chat-anfrage-status-text" id="chatAnfrageStatusText"></span>
+                    <div class="chat-anfrage-status-actions">
+                        <button class="chat-anfrage-status-btn chat-anfrage-status-btn-erledigt" id="chatAnfrageStatusBtnErledigt" data-action="erledigt">
+                            Erledigt
+                        </button>
+                        <button class="chat-anfrage-status-btn chat-anfrage-status-btn-abbrechen" id="chatAnfrageStatusBtnAbbrechen" data-action="cancel">
+                            Abbrechen
+                        </button>
                     </div>
                 </div>
             </div>
@@ -178,6 +223,37 @@ if (!isset($basePath)) {
         </div>
     </div>
     <div class="chat-box-resize-handle" id="chatBoxResizeHandle"></div>
+</div>
+
+<!-- Context Menu for Contact Items -->
+<div class="chat-context-menu" id="chatContextMenu" style="display: none;">
+    <button class="chat-context-menu-item" id="chatContextArchive" data-action="archive">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="21 8 21 21 3 21 3 8"></polyline>
+            <rect x="1" y="3" width="22" height="5"></rect>
+            <line x1="10" y1="12" x2="14" y2="12"></line>
+        </svg>
+        <span>Archivieren</span>
+    </button>
+    <button class="chat-context-menu-item chat-context-menu-item-danger" id="chatContextDelete" data-action="delete">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Entfernen</span>
+    </button>
+</div>
+
+<!-- Confirmation Modal for Remove -->
+<div id="chatRemoveConfirmModal" class="chat-remove-modal" style="display: none;">
+    <div class="chat-remove-modal-content">
+        <h3>Chat entfernen?</h3>
+        <p>Möchten Sie diesen Chat wirklich aus Ihrer Kontaktliste entfernen? Der Chat wird nur visuell entfernt und kann später wiederhergestellt werden.</p>
+        <div class="chat-remove-modal-buttons">
+            <button class="chat-remove-modal-btn chat-remove-modal-cancel" id="chatRemoveCancelBtn">Abbrechen</button>
+            <button class="chat-remove-modal-btn chat-remove-modal-confirm" id="chatRemoveConfirmBtn">Ja, entfernen</button>
+        </div>
+    </div>
 </div>
 
 

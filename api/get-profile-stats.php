@@ -10,19 +10,51 @@ if (!isset($_SESSION['user_id']) || isset($_SESSION['is_guest'])) {
     exit;
 }
 
+// Ensure all database tables exist
+if (function_exists('ensureDatabaseTables')) {
+    ensureDatabaseTables();
+} elseif (function_exists('ensureAllTables')) {
+    ensureAllTables();
+} elseif (function_exists('createTables')) {
+    createTables();
+}
+
 $userId = intval($_SESSION['user_id']);
 $conn = getDBConnection();
 
 try {
-    $laufendeAnfragen = $conn->prepare("SELECT COUNT(*) FROM anfragen WHERE user_id = ?");
+    // LAUFENDE ANFRAGEN: Anfragen, die der Benutzer erstellt hat (als requester) und die noch aktiv sind
+    // angebote.user_id = requester_id (Person, die Hilfe sucht)
+    // anfragen.user_id = helper_id (Person, die Hilfe anbietet)
+    $laufendeAnfragen = $conn->prepare("
+        SELECT COUNT(*) 
+        FROM anfragen a
+        INNER JOIN angebote an ON a.angebot_id = an.id
+        WHERE an.user_id = ? 
+        AND a.status IN ('pending', 'accepted', 'confirmed')
+    ");
     $laufendeAnfragen->execute([$userId]);
     $laufendeAnfragenCount = $laufendeAnfragen->fetchColumn();
     
-    $amHelfen = $conn->prepare("SELECT COUNT(DISTINCT a.id) FROM angebote a INNER JOIN anfragen anf ON a.id = anf.angebot_id WHERE a.user_id = ?");
+    // AM HELFEN: Anfragen, bei denen der Benutzer der Helfer ist und die bestätigt wurden
+    $amHelfen = $conn->prepare("
+        SELECT COUNT(*) 
+        FROM anfragen 
+        WHERE user_id = ? 
+        AND status = 'confirmed'
+        AND completed_by_requester IS NULL
+    ");
     $amHelfen->execute([$userId]);
     $amHelfenCount = $amHelfen->fetchColumn();
     
-    $geholfen = $conn->prepare("SELECT COUNT(*) FROM anfragen WHERE user_id = ? AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)");
+    // GEHOLFEN: Anfragen, bei denen der Benutzer der Helfer ist und die abgeschlossen wurden
+    $geholfen = $conn->prepare("
+        SELECT COUNT(*) 
+        FROM anfragen 
+        WHERE user_id = ? 
+        AND completed_by_requester IS NOT NULL
+        AND status = 'completed'
+    ");
     $geholfen->execute([$userId]);
     $geholfenCount = $geholfen->fetchColumn();
     

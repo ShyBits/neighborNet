@@ -31,9 +31,10 @@
 
 .footer-logo {
     height: 40px;
+    z-index: 2;
     width: auto;
     object-fit: contain;
-    filter: brightness(0) saturate(100%) invert(67%) sepia(47%) saturate(500%) hue-rotate(60deg) brightness(95%) contrast(85%);
+    filter: brightness(0) saturate(100%) invert(67%) sepia(47%) saturate(300%) hue-rotate(60deg) brightness(85%);
 }
 
 .footer-title {

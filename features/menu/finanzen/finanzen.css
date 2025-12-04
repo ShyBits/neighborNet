@@ -85,6 +85,29 @@
     justify-content: center;
     z-index: 2000;
     overflow: hidden;
+    touch-action: none;
+    -webkit-overflow-scrolling: none;
+    overscroll-behavior: none;
+}
+
+/* Prevent background scrolling when modal is open */
+body:has(.finanzen-modal-overlay[style*="flex"]) {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    touch-action: none !important;
+}
+
+/* Prevent any interaction with elements behind the modal */
+.finanzen-modal-overlay.active,
+.finanzen-modal-overlay[style*="flex"] {
+    pointer-events: auto;
+}
+
+.finanzen-modal-overlay.active ~ *,
+.finanzen-modal-overlay[style*="flex"] ~ * {
+    pointer-events: none;
 }
 
 .finanzen-modal-container {
@@ -95,6 +118,8 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
+    touch-action: pan-y;
+    pointer-events: auto;
 }
 
 .finanzen-modal-close {
@@ -123,6 +148,56 @@
     transform: rotate(90deg);
 }
 
+.finanzen-view-toggle-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 48px;
+    height: 48px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.finanzen-view-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+}
+
+.finanzen-view-toggle-btn .view-icon-grid,
+.finanzen-view-toggle-btn .view-icon-free {
+    position: absolute;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.finanzen-view-toggle-btn .view-icon-grid {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.finanzen-view-toggle-btn .view-icon-free {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.finanzen-view-toggle-btn.grid-mode .view-icon-grid {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.finanzen-view-toggle-btn.grid-mode .view-icon-free {
+    opacity: 1;
+    transform: scale(1);
+}
+
 .finanzen-papers-container {
     position: relative;
     width: 100%;
@@ -131,6 +206,134 @@
     align-items: center;
     justify-content: center;
     transform-origin: center center;
+}
+
+/* Ensure grid view overrides default flex layout */
+.finanzen-papers-container.grid-view {
+    display: grid !important;
+    flex-direction: unset !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+}
+
+/* Grid View Styles */
+.finanzen-papers-container.grid-view {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 40px 20px;
+    transform: none !important;
+    display: grid !important;
+    flex-direction: unset !important;
+    align-items: unset !important;
+    justify-content: unset !important;
+    grid-auto-flow: row;
+}
+
+.finanzen-papers-container.grid-view .a4-paper {
+    position: relative !important;
+    transform: none !important;
+    margin: 0 !important;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.finanzen-papers-container.grid-view .a4-paper:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.finanzen-papers-container.grid-view .a4-paper:active {
+    cursor: pointer;
+}
+
+@media (min-width: 769px) {
+    .finanzen-papers-container.grid-view {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-auto-rows: min-content;
+        gap: 20px;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    
+    .finanzen-papers-container.grid-view .a4-paper {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 210 / 297;
+        margin: 0;
+        padding: 20mm;
+    }
+    
+    /* Responsive: 3 Spalten bei mittleren Bildschirmen */
+    @media (max-width: 1400px) {
+        .finanzen-papers-container.grid-view {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    /* Responsive: 2 Spalten bei kleineren Bildschirmen */
+    @media (max-width: 1024px) {
+        .finanzen-papers-container.grid-view {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            padding: 30px 16px;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .finanzen-view-toggle-btn {
+        top: 10px;
+        left: 10px;
+        width: 44px;
+        height: 44px;
+    }
+    
+    .finanzen-papers-container.grid-view {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        grid-auto-rows: min-content !important;
+        gap: 12px !important;
+        padding: 20px 12px !important;
+        align-items: start !important;
+        justify-items: stretch !important;
+        flex-direction: unset !important;
+        align-content: start !important;
+        justify-content: unset !important;
+    }
+    
+    .finanzen-papers-container.grid-view .a4-paper {
+        position: relative !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        aspect-ratio: 210 / 297 !important;
+        margin: 0 !important;
+        padding: 12mm !important;
+        transform: none !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Mobile: 1 Spalte bei sehr kleinen Bildschirmen */
+    @media (max-width: 480px) {
+        .finanzen-papers-container.grid-view {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+            padding: 16px 12px !important;
+        }
+    }
 }
 
 /* A4 Papier Format: 210mm x 297mm (Ratio: 1:1.414) */
@@ -210,6 +413,18 @@
     transform: translate(560px, 150px) rotate(3deg);
 }
 
+/* Override position transforms in grid view */
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="0"],
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="1"],
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="2"],
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="3"],
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="4"],
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="5"],
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="6"],
+.finanzen-papers-container.grid-view .a4-paper[data-paper-index="7"] {
+    transform: none !important;
+}
+
 .finanzen-paper-content {
     color: #2c3e50;
     height: 100%;
@@ -230,6 +445,21 @@
     padding-bottom: 10px;
 }
 
+/* Smaller font sizes in grid view */
+.finanzen-papers-container.grid-view .finanzen-paper-content h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+    .finanzen-papers-container.grid-view .finanzen-paper-content h2 {
+        font-size: 14px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+    }
+}
+
 .finanzen-content-section {
     margin-bottom: 20px;
 }
@@ -239,6 +469,22 @@
     font-weight: 600;
     margin-bottom: 15px;
     color: #2c3e50;
+}
+
+.finanzen-papers-container.grid-view .finanzen-content-section {
+    margin-bottom: 12px;
+}
+
+.finanzen-papers-container.grid-view .finanzen-content-section h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+    .finanzen-papers-container.grid-view .finanzen-content-section h3 {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
 }
 
 .finanzen-table {
@@ -251,6 +497,16 @@
     justify-content: space-between;
     padding: 10px 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.finanzen-papers-container.grid-view .finanzen-row {
+    padding: 6px 0;
+}
+
+@media (max-width: 768px) {
+    .finanzen-papers-container.grid-view .finanzen-row {
+        padding: 4px 0;
+    }
 }
 
 .finanzen-row:last-child {
@@ -269,10 +525,30 @@
     color: #5a6c7d;
 }
 
+.finanzen-papers-container.grid-view .finanzen-label {
+    font-size: 11px;
+}
+
+@media (max-width: 768px) {
+    .finanzen-papers-container.grid-view .finanzen-label {
+        font-size: 9px;
+    }
+}
+
 .finanzen-value {
     font-size: 14px;
     font-weight: 600;
     color: #2c3e50;
+}
+
+.finanzen-papers-container.grid-view .finanzen-value {
+    font-size: 11px;
+}
+
+@media (max-width: 768px) {
+    .finanzen-papers-container.grid-view .finanzen-value {
+        font-size: 9px;
+    }
 }
 
 .finanzen-value.positive {
@@ -303,12 +579,27 @@
 
 /* Responsive - smaller on mobile */
 @media (max-width: 768px) {
+    .finanzen-modal-overlay {
+        touch-action: none; /* Prevent default touch behaviors */
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .finanzen-modal-container {
+        touch-action: none;
+    }
+    
+    .finanzen-papers-container {
+        touch-action: none;
+    }
+    
     .a4-paper {
         width: 80vw;
         height: calc(80vw * 1.414);
         max-width: 80vw;
         max-height: calc(80vw * 1.414);
         padding: 15mm;
+        touch-action: none; /* Prevent scrolling when dragging papers */
+        -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
     }
     
     .a4-paper[data-paper-index="0"] {
@@ -333,6 +624,21 @@
     
     .a4-paper[data-paper-index="5"] {
         transform: translate(150px, 90px) rotate(3deg);
+    }
+    
+    .finanzen-modal-close {
+        top: 10px;
+        right: 10px;
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
+        /* Larger touch target for mobile */
+    }
+    
+    .finanzen-paper-content {
+        /* Allow scrolling inside paper content on mobile */
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -402,11 +708,21 @@
     line-height: 1;
     padding: 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .pdf-view-close:hover {
     background-color: rgba(255, 255, 255, 1);
     transform: rotate(90deg);
+}
+
+.pdf-view-close:active {
+    background-color: rgba(255, 255, 255, 1);
+    transform: scale(0.95);
 }
 
 .pdf-view-content {
@@ -442,9 +758,13 @@
     .pdf-view-close {
         top: 10px;
         right: 10px;
-        width: 35px;
-        height: 35px;
-        font-size: 24px;
+        width: 48px;
+        height: 48px;
+        font-size: 28px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        min-width: 48px;
+        min-height: 48px;
     }
 }
 

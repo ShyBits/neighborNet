@@ -28,13 +28,22 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // Helper-Funktion zum Setzen des Consent-Cookies für Add-Modal (separat von Hauptkarte)
+    function setAddModalMapConsent(accepted) {
+        const path = window.location.pathname;
+        const cookiePath = path.substring(0, path.lastIndexOf('/') + 1) || '/';
+        
+        if (accepted) {
+            document.cookie = 'add_modal_map_consent=accepted; path=' + cookiePath + '; max-age=' + (365 * 24 * 60 * 60) + '; SameSite=Lax';
+        } else {
+            document.cookie = 'add_modal_map_consent=; path=' + cookiePath + '; max-age=0';
+        }
+    }
+    
     // Handle Karten-Einwilligung im Modal
     if (addModalConsentBtn) {
         addModalConsentBtn.addEventListener('click', function() {
-            // Setze Cookie mit korrektem Pfad
-            const path = window.location.pathname;
-            const cookiePath = path.substring(0, path.lastIndexOf('/') + 1) || '/';
-            document.cookie = 'map_consent=accepted; path=' + cookiePath + '; max-age=' + (365 * 24 * 60 * 60) + '; SameSite=Lax';
+            setAddModalMapConsent(true);
             
             // Ersetze Einwilligungsmeldung durch Karte
             const addModalMapContainer = document.querySelector('.add-modal-map');
@@ -46,8 +55,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     mapContainer.id = 'addModalMap';
                     mapContainer.className = 'add-modal-map-container';
                     
+                    // Erstelle Widerruf-Button
+                    const revokeBtn = document.createElement('button');
+                    revokeBtn.className = 'add-modal-revoke-btn';
+                    revokeBtn.id = 'addModalRevokeBtn';
+                    revokeBtn.title = 'Einwilligung widerrufen';
+                    revokeBtn.innerHTML = `
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6l12 12"></path>
+                        </svg>
+                    `;
+                    
                     // Ersetze Consent-Message durch Karten-Container
                     consentMessage.replaceWith(mapContainer);
+                    addModalMapContainer.appendChild(revokeBtn);
                     
                     // Initialisiere Karte nach kurzer Verzögerung
                     if (typeof L !== 'undefined' && addModalMapInstance === null) {
@@ -57,6 +79,104 @@ document.addEventListener('DOMContentLoaded', function() {
                                 initMap();
                             }
                         }, 150);
+                    }
+                    
+                    // Füge Event-Listener zum Widerruf-Button hinzu
+                    const newRevokeBtn = document.getElementById('addModalRevokeBtn');
+                    if (newRevokeBtn) {
+                        newRevokeBtn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (confirm('Möchten Sie die Einwilligung wirklich widerrufen? Die Karte wird dann nicht mehr angezeigt.')) {
+                                setAddModalMapConsent(false);
+                                
+                                // Entferne Karte und Button
+                                if (addModalMapInstance) {
+                                    addModalMapInstance.remove();
+                                    addModalMapInstance = null;
+                                }
+                                const mapContainer = document.getElementById('addModalMap');
+                                if (mapContainer) {
+                                    mapContainer.remove();
+                                }
+                                const revokeBtn = document.getElementById('addModalRevokeBtn');
+                                if (revokeBtn) {
+                                    revokeBtn.remove();
+                                }
+                                
+                                // Zeige Consent-Dialog wieder an
+                                const addModalMapContainer = document.querySelector('.add-modal-map');
+                                if (addModalMapContainer) {
+                                    const consentDialog = document.createElement('div');
+                                    consentDialog.className = 'add-modal-map-consent';
+                                    consentDialog.innerHTML = `
+                                        <div class="consent-content">
+                                            <h3>Karten-Einwilligung</h3>
+                                            <p>Um die interaktive Karte zu nutzen, benötigen wir Ihre Einwilligung zur Anzeige von Kartenmaterial.</p>
+                                            <button type="button" class="consent-accept-btn" id="addModalConsentBtn">Einwilligen</button>
+                                        </div>
+                                    `;
+                                    addModalMapContainer.appendChild(consentDialog);
+                                    
+                                    // Füge Event-Listener zum neuen Consent-Button hinzu
+                                    const newConsentBtn = document.getElementById('addModalConsentBtn');
+                                    if (newConsentBtn) {
+                                        newConsentBtn.addEventListener('click', function() {
+                                            setAddModalMapConsent(true);
+                                            location.reload();
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    }
+    
+    // Handle Widerruf-Button (wenn bereits vorhanden beim Öffnen des Modals)
+    const addModalRevokeBtn = document.getElementById('addModalRevokeBtn');
+    if (addModalRevokeBtn) {
+        addModalRevokeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (confirm('Möchten Sie die Einwilligung wirklich widerrufen? Die Karte wird dann nicht mehr angezeigt.')) {
+                setAddModalMapConsent(false);
+                
+                // Entferne Karte und Button
+                if (addModalMapInstance) {
+                    addModalMapInstance.remove();
+                    addModalMapInstance = null;
+                }
+                const mapContainer = document.getElementById('addModalMap');
+                if (mapContainer) {
+                    mapContainer.remove();
+                }
+                const revokeBtn = document.getElementById('addModalRevokeBtn');
+                if (revokeBtn) {
+                    revokeBtn.remove();
+                }
+                
+                // Zeige Consent-Dialog wieder an
+                const addModalMapContainer = document.querySelector('.add-modal-map');
+                if (addModalMapContainer) {
+                    const consentDialog = document.createElement('div');
+                    consentDialog.className = 'add-modal-map-consent';
+                    consentDialog.innerHTML = `
+                        <div class="consent-content">
+                            <h3>Karten-Einwilligung</h3>
+                            <p>Um die interaktive Karte zu nutzen, benötigen wir Ihre Einwilligung zur Anzeige von Kartenmaterial.</p>
+                            <button type="button" class="consent-accept-btn" id="addModalConsentBtn">Einwilligen</button>
+                        </div>
+                    `;
+                    addModalMapContainer.appendChild(consentDialog);
+                    
+                    // Füge Event-Listener zum neuen Consent-Button hinzu
+                    const newConsentBtn = document.getElementById('addModalConsentBtn');
+                    if (newConsentBtn) {
+                        newConsentBtn.addEventListener('click', function() {
+                            setAddModalMapConsent(true);
+                            location.reload();
+                        });
                     }
                 }
             }

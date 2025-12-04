@@ -397,8 +397,9 @@
     .nav-menu-mobile-user-actions {
         border-top: 2px solid #e0e0e0;
         padding-top: 20px;
+        padding-bottom: 20px;
         margin-top: auto;
-        background-color: #f8f9fa;
+        background-color: #ffffff;
     }
     
     /* Profile Section in Mobile Menu */
@@ -411,7 +412,6 @@
         align-items: center;
         justify-content: space-between;
         padding-bottom: 16px;
-        border-bottom: 1px solid #e0e0e0;
         margin-bottom: 12px;
     }
     

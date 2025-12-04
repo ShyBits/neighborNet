@@ -327,6 +327,30 @@ function ensureAllTables() {
         'user_activity' => "CREATE TABLE IF NOT EXISTS {$q}user_activity{$q} (
             {$q}user_id{$q} INT NOT NULL PRIMARY KEY,
             {$q}last_activity{$q} TIMESTAMP DEFAULT {$dbInfo['current_timestamp']} {$dbInfo['timestamp_update']}
+        ) {$dbInfo['engine']} {$dbInfo['charset']}",
+        
+        // 11. chat_favorites - Favorisierte Chat-Kontakte
+        'chat_favorites' => "CREATE TABLE IF NOT EXISTS {$q}chat_favorites{$q} (
+            {$q}id{$q} {$idColumn}{$primaryKeySuffix},
+            {$q}user_id{$q} INT NOT NULL,
+            {$q}contact_user_id{$q} INT NOT NULL,
+            {$q}created_at{$q} TIMESTAMP DEFAULT {$dbInfo['current_timestamp']}" .
+            ($dbInfo['driver'] === 'mysql' ? ",
+            UNIQUE KEY {$q}unique_favorite{$q} ({$q}user_id{$q}, {$q}contact_user_id{$q}),
+            INDEX {$q}idx_user_id{$q} ({$q}user_id{$q}),
+            INDEX {$q}idx_contact_user_id{$q} ({$q}contact_user_id{$q})" : "") . "
+        ) {$dbInfo['engine']} {$dbInfo['charset']}",
+        
+        // 12. chat_archived - Archivierte Chats
+        'chat_archived' => "CREATE TABLE IF NOT EXISTS {$q}chat_archived{$q} (
+            {$q}id{$q} {$idColumn}{$primaryKeySuffix},
+            {$q}user_id{$q} INT NOT NULL,
+            {$q}chat_id{$q} INT NOT NULL,
+            {$q}archived_at{$q} TIMESTAMP DEFAULT {$dbInfo['current_timestamp']}" .
+            ($dbInfo['driver'] === 'mysql' ? ",
+            UNIQUE KEY {$q}unique_user_chat{$q} ({$q}user_id{$q}, {$q}chat_id{$q}),
+            INDEX {$q}idx_user_id{$q} ({$q}user_id{$q}),
+            INDEX {$q}idx_chat_id{$q} ({$q}chat_id{$q})" : "") . "
         ) {$dbInfo['engine']} {$dbInfo['charset']}"
     ];
     
@@ -381,13 +405,28 @@ function ensureAllTables() {
         ['chat_requests', 'idx_chat_requests_helper', "({$q}helper_id{$q})"],
         
         // user_activity
-        ['user_activity', 'idx_user_activity_last_activity', "({$q}last_activity{$q})"]
+        ['user_activity', 'idx_user_activity_last_activity', "({$q}last_activity{$q})"],
+        
+        // chat_favorites
+        ['chat_favorites', 'unique_favorite', "({$q}user_id{$q}, {$q}contact_user_id{$q})"],
+        ['chat_favorites', 'idx_user_id', "({$q}user_id{$q})"],
+        ['chat_favorites', 'idx_contact_user_id', "({$q}contact_user_id{$q})"],
+        
+        // chat_archived
+        ['chat_archived', 'unique_user_chat', "({$q}user_id{$q}, {$q}chat_id{$q})"],
+        ['chat_archived', 'idx_user_id', "({$q}user_id{$q})"],
+        ['chat_archived', 'idx_chat_id', "({$q}chat_id{$q})"]
     ];
     
     foreach ($indexes as $index) {
         if (!indexExists($conn, $index[0], $index[1])) {
             try {
-                $conn->exec("CREATE INDEX {$q}{$index[1]}{$q} ON {$q}{$index[0]}{$q} {$index[2]}");
+                // Für UNIQUE-Indexe verwende CREATE UNIQUE INDEX
+                if ($index[1] === 'unique_favorite') {
+                    $conn->exec("CREATE UNIQUE INDEX {$q}{$index[1]}{$q} ON {$q}{$index[0]}{$q} {$index[2]}");
+                } else {
+                    $conn->exec("CREATE INDEX {$q}{$index[1]}{$q} ON {$q}{$index[0]}{$q} {$index[2]}");
+                }
             } catch(PDOException $e) {
                 // Ignoriere Fehler
             }
@@ -411,7 +450,11 @@ function ensureAllTables() {
             ['chat_requests', 'chat_id', 'chats', 'id', 'fk_chat_requests_chat', 'SET NULL'],
             ['chat_requests', 'requester_id', 'users', 'id', 'fk_chat_requests_requester', 'CASCADE'],
             ['chat_requests', 'helper_id', 'users', 'id', 'fk_chat_requests_helper', 'CASCADE'],
-            ['user_activity', 'user_id', 'users', 'id', 'fk_user_activity_user', 'CASCADE']
+            ['user_activity', 'user_id', 'users', 'id', 'fk_user_activity_user', 'CASCADE'],
+            ['chat_favorites', 'user_id', 'users', 'id', 'fk_chat_favorites_user', 'CASCADE'],
+            ['chat_favorites', 'contact_user_id', 'users', 'id', 'fk_chat_favorites_contact', 'CASCADE'],
+            ['chat_archived', 'user_id', 'users', 'id', 'fk_chat_archived_user', 'CASCADE'],
+            ['chat_archived', 'chat_id', 'chats', 'id', 'fk_chat_archived_chat', 'CASCADE']
         ];
         
         foreach ($foreignKeys as $fk) {

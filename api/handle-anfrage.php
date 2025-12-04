@@ -61,6 +61,48 @@ try {
             $conn->beginTransaction();
             
             try {
+                // Hole required_persons vom Angebot
+                $stmt = $conn->prepare("
+                    SELECT COALESCE(an.required_persons, 1) as required_persons
+                    FROM anfragen a
+                    INNER JOIN angebote an ON a.angebot_id = an.id
+                    WHERE a.id = ?
+                ");
+                $stmt->execute([$anfrageId]);
+                $angebotInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$angebotInfo) {
+                    $conn->rollBack();
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Angebot nicht gefunden']);
+                    exit;
+                }
+                
+                $requiredPersons = intval($angebotInfo['required_persons'] ?? 1);
+                
+                // Prüfe wie viele Anfragen bereits angenommen wurden (accepted oder confirmed)
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) as accepted_count
+                    FROM anfragen
+                    WHERE angebot_id = (
+                        SELECT angebot_id FROM anfragen WHERE id = ?
+                    )
+                    AND status IN ('accepted', 'confirmed')
+                    AND id != ?
+                ");
+                $stmt->execute([$anfrageId, $anfrageId]);
+                $acceptedCount = intval($stmt->fetch(PDO::FETCH_ASSOC)['accepted_count'] ?? 0);
+                
+                if ($acceptedCount >= $requiredPersons) {
+                    $conn->rollBack();
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => "Die maximale Anzahl von {$requiredPersons} Helfer" . ($requiredPersons > 1 ? "n" : "") . " wurde bereits erreicht."
+                    ]);
+                    exit;
+                }
+                
                 // Update anfrage status
                 $stmt = $conn->prepare("
                     UPDATE anfragen 
@@ -118,6 +160,63 @@ try {
                     // Table might not exist yet, ignore
                 }
                 
+                // Get angebot title for the confirmation message
+                $stmt = $conn->prepare("SELECT title FROM angebote WHERE id = ?");
+                $stmt->execute([$anfrage['angebot_id']]);
+                $angebot = $stmt->fetch(PDO::FETCH_ASSOC);
+                $angebotTitle = $angebot ? $angebot['title'] : 'Ihre Anfrage';
+                
+                // Send confirmation message to helper
+                $confirmationMessageData = json_encode([
+                    'type' => 'anfrage_accepted',
+                    'anfrage_id' => $anfrageId,
+                    'angebot_id' => $anfrage['angebot_id'],
+                    'angebot_title' => $angebotTitle,
+                    'helper_id' => $helperId,
+                    'requester_id' => $requesterId
+                ]);
+                
+                $confirmationMessageText = "Ihre Hilfe wurde für die Anfrage \"" . htmlspecialchars($angebotTitle, ENT_QUOTES, 'UTF-8') . "\" angenommen. Bitte bestätigen Sie, dass Sie die Aufgabe übernehmen möchten.";
+                
+                $stmt = $conn->prepare("
+                    INSERT INTO messages (chat_id, sender_id, receiver_id, message, encrypted, file_path, file_type) 
+                    VALUES (?, ?, ?, ?, 0, ?, 'anfrage_accepted')
+                ");
+                $stmt->execute([$chatId, $requesterId, $helperId, $confirmationMessageText, $confirmationMessageData]);
+                
+                // Update chat metadata
+                $messageId = $conn->lastInsertId();
+                $stmt = $conn->prepare("
+                    SELECT user_id FROM chat_participants 
+                    WHERE chat_id = ? 
+                    ORDER BY user_id ASC
+                ");
+                $stmt->execute([$chatId]);
+                $participants = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                $isFirstUser = count($participants) > 0 && intval($participants[0]) === $helperId;
+                $unreadField = $isFirstUser ? 'unread_count_user_2' : 'unread_count_user_1';
+                
+                $stmt = $conn->prepare("
+                    UPDATE chat_metadata 
+                    SET last_message_id = ?, 
+                        last_message_at = NOW(),
+                        {$unreadField} = {$unreadField} + 1
+                    WHERE chat_id = ?
+                ");
+                $stmt->execute([$messageId, $chatId]);
+                
+                // If metadata doesn't exist, create it
+                if ($stmt->rowCount() === 0) {
+                    $unread1 = $isFirstUser ? 0 : 1;
+                    $unread2 = $isFirstUser ? 1 : 0;
+                    
+                    $stmt = $conn->prepare("
+                        INSERT INTO chat_metadata (chat_id, last_message_id, last_message_at, unread_count_user_1, unread_count_user_2) 
+                        VALUES (?, ?, NOW(), ?, ?)
+                    ");
+                    $stmt->execute([$chatId, $messageId, $unread1, $unread2]);
+                }
+                
                 $conn->commit();
                 
                 echo json_encode([
@@ -157,35 +256,100 @@ try {
                 exit;
             }
             
-            $stmt = $conn->prepare("
-                UPDATE anfragen 
-                SET status = 'confirmed', confirmed_at = NOW() 
-                WHERE id = ? AND status = 'accepted'
-            ");
-            $stmt->execute([$anfrageId]);
+            $conn->beginTransaction();
             
-            echo json_encode(['success' => true, 'message' => 'Anfrage bestätigt']);
+            try {
+                // Get angebot title and chat_id
+                $stmt = $conn->prepare("
+                    SELECT a.angebot_id, an.title, cr.chat_id
+                    FROM anfragen a
+                    INNER JOIN angebote an ON a.angebot_id = an.id
+                    LEFT JOIN chat_requests cr ON cr.anfrage_id = a.id
+                    WHERE a.id = ?
+                ");
+                $stmt->execute([$anfrageId]);
+                $anfrageInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$anfrageInfo) {
+                    $conn->rollBack();
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Anfrage nicht gefunden']);
+                    exit;
+                }
+                
+                // Update anfrage status
+                $stmt = $conn->prepare("
+                    UPDATE anfragen 
+                    SET status = 'confirmed', confirmed_at = NOW() 
+                    WHERE id = ? AND status = 'accepted'
+                ");
+                $stmt->execute([$anfrageId]);
+                
+                if ($stmt->rowCount() === 0) {
+                    $conn->rollBack();
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Anfrage kann nicht bestätigt werden']);
+                    exit;
+                }
+                
+                $conn->commit();
+                
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Anfrage bestätigt',
+                    'anfrage_id' => $anfrageId,
+                    'angebot_title' => $anfrageInfo['title'],
+                    'chat_id' => $anfrageInfo['chat_id']
+                ]);
+            } catch(Exception $e) {
+                $conn->rollBack();
+                throw $e;
+            }
             break;
             
         case 'cancel':
-            // Hilfesuchender nimmt Anfrage zurück
-            if ($currentUserId != $requesterId) {
+            // Hilfesuchender nimmt Anfrage zurück oder Hilfsgeber bricht ab
+            // Prüfe ob es der Hilfesuchende oder der Hilfsgeber ist
+            $isRequester = ($currentUserId == $requesterId);
+            $isHelper = ($currentUserId == $helperId);
+            
+            if (!$isRequester && !$isHelper) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Nicht berechtigt']);
                 exit;
             }
             
-            $stmt = $conn->prepare("
-                UPDATE anfragen 
-                SET status = 'cancelled' 
-                WHERE id = ? AND status IN ('pending', 'accepted', 'confirmed')
-            ");
+            // Wenn es der Hilfsgeber ist und Status confirmed ist, dann ist es "abbrechen"
+            // Wenn es der Hilfesuchende ist, dann ist es "zurücknehmen"
+            $stmt = $conn->prepare("SELECT status FROM anfragen WHERE id = ?");
             $stmt->execute([$anfrageId]);
+            $currentStatus = $stmt->fetchColumn();
             
-            echo json_encode(['success' => true, 'message' => 'Anfrage zurückgenommen']);
+            if ($isHelper && $currentStatus === 'confirmed') {
+                // Hilfsgeber bricht ab - setze Status zurück auf accepted
+                $stmt = $conn->prepare("
+                    UPDATE anfragen 
+                    SET status = 'accepted', confirmed_at = NULL
+                    WHERE id = ? AND status = 'confirmed'
+                ");
+                $stmt->execute([$anfrageId]);
+                echo json_encode(['success' => true, 'message' => 'Anfrage abgebrochen']);
+            } else if ($isRequester) {
+                // Hilfesuchender nimmt Anfrage zurück
+                $stmt = $conn->prepare("
+                    UPDATE anfragen 
+                    SET status = 'cancelled' 
+                    WHERE id = ? AND status IN ('pending', 'accepted', 'confirmed')
+                ");
+                $stmt->execute([$anfrageId]);
+                echo json_encode(['success' => true, 'message' => 'Anfrage zurückgenommen']);
+            } else {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Nicht berechtigt']);
+            }
             break;
             
-        case 'completed_by_helper':
+        case 'erledigt':
             // Hilfsgeber markiert Aufgabe als erledigt
             if ($currentUserId != $helperId) {
                 http_response_code(403);

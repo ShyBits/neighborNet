@@ -9,7 +9,12 @@ body.dark-mode .auth-modal {
 body.dark-mode .auth-modal-close {
     color: #b0b0b0;
 }
-
+body.dark-mode label {
+    color: #ffffff;
+}
+body.dark-mode input {
+    color: #ffffff;
+}
 body.dark-mode .auth-modal-close:hover {
     background: #3a3a3a;
     color: #e0e0e0;
