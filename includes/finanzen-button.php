@@ -66,16 +66,16 @@
                                 <span class="finanzen-value">€1.200,00</span>
                             </div>
                             <div class="finanzen-row">
-                                <span class="finanzen-label">Sozialabgaben (ca. 20%):</span>
-                                <span class="finanzen-value">€4.520,00</span>
+                                <span class="finanzen-label">Sozialabgaben (ca. 18%):</span>
+                                <span class="finanzen-value">€4.536,00</span>
                             </div>
                             <div class="finanzen-row finanzen-total">
                                 <span class="finanzen-label">Gesamt monatlich:</span>
-                                <span class="finanzen-value">€29.720,00</span>
+                                <span class="finanzen-value">€29.736,00</span>
                             </div>
                             <div class="finanzen-row finanzen-total">
                                 <span class="finanzen-label">Gesamt jährlich:</span>
-                                <span class="finanzen-value">€356.640,00</span>
+                                <span class="finanzen-value">€356.832,00</span>
                             </div>
                         </div>
                     </div>
@@ -279,7 +279,7 @@
                             </div>
                             <div class="finanzen-row">
                                 <span class="finanzen-label">Personalausgaben:</span>
-                                <span class="finanzen-value negative">€356.640,00</span>
+                                <span class="finanzen-value negative">€356.832,00</span>
                             </div>
                             <div class="finanzen-row">
                                 <span class="finanzen-label">IT & Infrastruktur:</span>
@@ -295,11 +295,11 @@
                             </div>
                             <div class="finanzen-row finanzen-total">
                                 <span class="finanzen-label">Gesamtausgaben:</span>
-                                <span class="finanzen-value negative">€555.540,00</span>
+                                <span class="finanzen-value negative">€555.732,00</span>
                             </div>
                             <div class="finanzen-row finanzen-total">
                                 <span class="finanzen-label">Jahresüberschuss/-fehlbetrag:</span>
-                                <span class="finanzen-value negative">-€106.740,00</span>
+                                <span class="finanzen-value negative">-€106.932,00</span>
                             </div>
                         </div>
                     </div>
@@ -320,7 +320,7 @@
                             </div>
                             <div class="finanzen-row finanzen-total">
                                 <span class="finanzen-label">Kapitalstand Ende 2024:</span>
-                                <span class="finanzen-value">€193.260,00</span>
+                                <span class="finanzen-value">€193.068,00</span>
                             </div>
                         </div>
                     </div>
@@ -383,11 +383,11 @@
                             </div>
                             <div class="finanzen-row">
                                 <span class="finanzen-label">Monatliche Ausgaben:</span>
-                                <span class="finanzen-value negative">€46.295,00</span>
+                                <span class="finanzen-value negative">€46.311,00</span>
                             </div>
                             <div class="finanzen-row finanzen-total">
                                 <span class="finanzen-label">Monatliches Defizit:</span>
-                                <span class="finanzen-value negative">-€8.895,00</span>
+                                <span class="finanzen-value negative">-€8.911,00</span>
                             </div>
                         </div>
                         <h3>Prognose 2025</h3>
